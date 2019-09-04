@@ -1,0 +1,104 @@
+main {
+    padding: 5rem 5px 0 5px;
+}
+
+#data_table {
+    padding-bottom: 5rem;
+}
+.page {
+    width: 100vw;
+    height: 100vh;
+    display: none;
+}
+
+.auth-form {
+    padding: 1rem;
+    max-width: 400px;
+    margin: 0 auto;
+}
+.table-sm td, .table-sm th {
+    padding: .3rem .1rem;
+}
+.block{
+    display: none;
+}
+.dropdown-item {
+    cursor: pointer;
+}
+.dropdown-item:active{
+    background-color: rgba(0,0,0,.2);
+}
+tr.selected {
+    background-color: rgba(0,0,0,.2);
+}
+.block-list {
+    padding-top: 1rem;
+}
+
+.fc-body {
+    cursor: pointer;
+}
+.list-group-item.active{
+    background-color: rgba(0,0,0,.4);
+    border-color: #ccc;
+}
+
+.modal-dialog {
+    min-width: 80vw !important;
+}
+
+input.cur_page {
+    width: 40px;
+    padding: 0;
+}
+
+input.year{
+    width: 70px;
+}
+
+.table-bordered td, .table-bordered th {
+    text-align: center;   
+}
+.table-bordered th[scope="row"]{
+    text-align: left; 
+}
+
+th[data-prop] {
+    cursor: pointer;
+}
+
+.pointed{
+    cursor: pointer;
+}
+
+.multiselect-container .input-group{
+    margin: 0;
+}
+.multiselect-container>li>a>label {
+    padding: 5px;
+    color: #495057;
+}
+
+.fc-unthemed td.fc-today {
+    background-color: rgba(0,0,0,.1);
+}
+
+th[sort="ASC"]:after {
+    content: "";
+    border-right: 5px solid transparent;
+    border-left: 5px solid transparent;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid #495057;
+    position: absolute;
+    margin-top: 5px;
+}
+
+th[sort="DESC"]:after {
+    content: "";
+    border-right: 5px solid transparent;
+    border-left: 5px solid transparent;
+    border-top: 5px solid #495057;
+    border-bottom: 5px solid transparent;
+    position: absolute;
+    margin-top: 10px;
+}
