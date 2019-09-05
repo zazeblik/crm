@@ -199,39 +199,33 @@ module.exports = {
         })
     },
     total: async function(req, res){
-        if (req.param("group") && req.param("start") && req.param("end")) {
+        if (req.param("start") && req.param("end")) {
             var group = req.param("group")
             var start = req.param("start")
             var end = req.param("end")
+            var trains_where = {
+                datetime: {
+                    ">=": start
+                },
+                datetime_end: {
+                    "<=": end
+                }
+            };
+            if (group) trains_where.group = group
             try {
                 var trains = await Trains.find({
-                    where: {
-                        group: group,
-                        datetime: {
-                            ">=": start
-                        },
-                        datetime_end: {
-                            "<=": end
-                        }
-                    }
+                    where: trains_where
                 }).populate("members", {select: "toView"})
-                var pays_data = await Payments.find({
-                    where: {
-                        starts: {
-                            ">=": start,
-                            "<": end
-                        }
+                var pays_where = {
+                    starts: {
+                        ">=": start,
+                        "<": end
                     }
-                }).populate("groups")
-                var pays = []
-                for (var i=0; i < pays_data.length; i++){
-                    for (let j = 0; j < pays_data[i].groups.length; j++) {
-                        const pay_group = pays_data[i].groups[j];
-                        if (pay_group.id == group) {
-                            pays.push(pays_data[i])
-                        }
-                    }
-                }
+                };
+                if (group) pays_where.group = group
+                var pays = await Payments.find({
+                    where: pays_where
+                })
                 
                 var trains_count = trains.length
                 var pays_count = pays.length
@@ -254,7 +248,7 @@ module.exports = {
                 return res.status(400).send(error);    
             }            
         } else {
-            return res.status(400).send("Parameter group, start and end is required");
+            return res.status(400).send("Parameter start and end is required");
         }
     },
     debt_dates: async function(req, res){
@@ -282,7 +276,7 @@ module.exports = {
                 var trains = payer.trains.sort(function(a, b) {
                     return parseFloat(a.datetime) - parseFloat(b.datetime);
                 })
-                var payments = await Payments.find({payer: payer_id}).populate('groups', find_group_obj).sort("starts DESC")
+                var payments = await Payments.find({payer: payer_id}).populate('group', find_group_obj).sort("starts DESC")
                 var group_dates = {}
                 var personal_dates = {}
                 var sbor_dates = {}
@@ -304,33 +298,30 @@ module.exports = {
                         if (trains[i].group.type == "групповая"){
                             if (groups[trains[i].group.id].once_sum){
                                 for (var k = 0; k < payments.length; k++){
-                                    var payment_groups = payments[k].groups;
-                                    for (var j = 0; j < payment_groups.length; j++) {
-                                        var paymet_group_id = payment_groups[j].id
-                                        if (paymet_group_id && paymet_group_id == trains[i].group.id && payments[k].starts <= trains[i].datetime && payments[k].ends >= trains[i].datetime_end){
-                                            if (payments[k].type == "разовый"){
-                                                if (!once_pays[paymet_group_id]) once_pays[paymet_group_id] = []
-                                                once_pays[paymet_group_id].push({
-                                                    datetime: trains[i].datetime,
-                                                    datetime_end: trains[i].datetime_end
-                                                })
-                                            }
-                                            if (payments[k].type == "абонемент"){
-                                                if (payments[k].count){
-                                                    if (!abon_pays[paymet_group_id]) abon_pays[paymet_group_id] = []
-                                                    var tmp_obj = {
-                                                        starts: payments[k].starts,
-                                                        ends: payments[k].ends,
-                                                        count: payments[k].count
-                                                    }
-                                                    var finded = false
-                                                    for (var m = 0; m < abon_pays[paymet_group_id].length; m++){
-                                                        if (JSON.stringify(abon_pays[paymet_group_id][m]) == JSON.stringify(tmp_obj)) finded = true
-                                                    }
-                                                    if (!finded) abon_pays[paymet_group_id].push(tmp_obj)
+                                    if (payments[k].group == null) continue;
+                                    var paymet_group_id = payments[k].group.id
+                                    if (paymet_group_id && paymet_group_id == trains[i].group.id && payments[k].starts <= trains[i].datetime && payments[k].ends >= trains[i].datetime_end){
+                                        if (payments[k].type == "разовый"){
+                                            if (!once_pays[paymet_group_id]) once_pays[paymet_group_id] = []
+                                            once_pays[paymet_group_id].push({
+                                                datetime: trains[i].datetime,
+                                                datetime_end: trains[i].datetime_end
+                                            })
+                                        }
+                                        if (payments[k].type == "абонемент"){
+                                            if (payments[k].count){
+                                                if (!abon_pays[paymet_group_id]) abon_pays[paymet_group_id] = []
+                                                var tmp_obj = {
+                                                    starts: payments[k].starts,
+                                                    ends: payments[k].ends,
+                                                    count: payments[k].count
                                                 }
+                                                var finded = false
+                                                for (var m = 0; m < abon_pays[paymet_group_id].length; m++){
+                                                    if (JSON.stringify(abon_pays[paymet_group_id][m]) == JSON.stringify(tmp_obj)) finded = true
+                                                }
+                                                if (!finded) abon_pays[paymet_group_id].push(tmp_obj)
                                             }
-                                            
                                         }
                                     }
                                 }
@@ -482,39 +473,37 @@ module.exports = {
                     }                    
                 }
                 for (var i=0; i<payments.length; i++){
-                    var payment_groups = payments[i].groups
-                    for (var c=0; c < payment_groups.length; c++){
-                        if(payment_groups[c] && payment_groups[c].type){
-                            if (payment_groups[c].type == "групповая"){
-                                if (group_dates[payment_groups[c].id] && group_dates[payment_groups[c].id].length){
-                                    for (var j=group_dates[payment_groups[c].id].length-1; j>=0; j--){
-                                        if (payments[i].starts <= group_dates[payment_groups[c].id][j].datetime && payments[i].ends >= group_dates[payment_groups[c].id][j].datetime_end){
-                                            group_dates[payment_groups[c].id].splice(j,1)
-                                        }
+                    var payment_group = payments[i].group
+                    if(payment_group && payment_group.type){
+                        if (payment_group.type == "групповая"){
+                            if (group_dates[payment_group.id] && group_dates[payment_group.id].length){
+                                for (var j=group_dates[payment_group.id].length-1; j>=0; j--){
+                                    if (payments[i].starts <= group_dates[payment_group.id][j].datetime && payments[i].ends >= group_dates[payment_group.id][j].datetime_end){
+                                        group_dates[payment_group.id].splice(j,1)
                                     }
-                                }              
-                            }
-                            if (payment_groups[c].type == "индивидуальная"){
-                                if (personal_dates[payment_groups[c].id] && personal_dates[payment_groups[c].id].length){
-                                    for (var j=personal_dates[payment_groups[c].id].length-1; j>=0; j--){
-                                        if (payments[i].starts <= personal_dates[payment_groups[c].id][j].starts && payments[i].ends >= personal_dates[payment_groups[c].id][j].ends){
-                                            personal_dates[payment_groups[c].id].splice(j,1)
-                                        }
+                                }
+                            }              
+                        }
+                        if (payment_group.type == "индивидуальная"){
+                            if (personal_dates[payment_group.id] && personal_dates[payment_group.id].length){
+                                for (var j=personal_dates[payment_group.id].length-1; j>=0; j--){
+                                    if (payments[i].starts <= personal_dates[payment_group.id][j].starts && payments[i].ends >= personal_dates[payment_group.id][j].ends){
+                                        personal_dates[payment_group.id].splice(j,1)
                                     }
-                                }                 
-                            }
-                            if (payment_groups[c].type == "сборы"){
-                                if (sbor_dates[payment_groups[c].id]) {
-                                    if (payments[i].starts <= sbor_dates[payment_groups[c].id].starts && payments[i].ends >= sbor_dates[payment_groups[c].id].ends){
-                                        delete sbor_dates[payment_groups[c].id]
-                                    }
-                                }                  
-                            }
-                            if (payment_groups[c].type == "сбор денег"){
-                                if (cash_dates[payment_groups[c].id]) {
-                                    delete cash_dates[payment_groups[c].id]
-                                }                  
-                            }
+                                }
+                            }                 
+                        }
+                        if (payment_group.type == "сборы"){
+                            if (sbor_dates[payment_group.id]) {
+                                if (payments[i].starts <= sbor_dates[payment_group.id].starts && payments[i].ends >= sbor_dates[payment_group.id].ends){
+                                    delete sbor_dates[payment_group.id]
+                                }
+                            }                  
+                        }
+                        if (payment_group.type == "сбор денег"){
+                            if (cash_dates[payment_group.id]) {
+                                delete cash_dates[payment_group.id]
+                            }                  
                         }
                     }
                 }
@@ -565,7 +554,7 @@ module.exports = {
         try {
             var groups_data = await Groups.find().populate("members")
             var trains = await Trains.find({sort: "datetime ASC"}).populate("members")
-            var payments = await Payments.find({sort: "starts ASC"}).populate("groups")
+            var payments = await Payments.find({sort: "starts ASC"}).populate("group")
             var persons = {};
             var groups = {};
             var result = {};
@@ -587,38 +576,36 @@ module.exports = {
                     for (var j=0; j < train_memebers.length; j++){
                         var member_id = train_memebers[j].id;
                         for (var k = 0; k < payments.length; k++){
-                            var payment_groups = payments[k].groups
-                            for (var n = 0; n < payment_groups.length; n++){
-                                var payment_group_id = payment_groups[n].id
-                                if (payments[k].payer == member_id && payment_group_id == trains[i].group && payments[k].starts <= trains[i].datetime && payments[k].ends >= trains[i].datetime_end){
-                                    if (payments[k].type == "разовый"){
-                                        if (groups[payment_group_id].once_sum){
-                                            if (!once_pays[train_memebers[j].id]) once_pays[train_memebers[j].id] = {}
-                                            if (!once_pays[train_memebers[j].id][payment_group_id]) once_pays[train_memebers[j].id][payment_group_id] = []
-                                            once_pays[train_memebers[j].id][payment_group_id].push({
-                                                datetime: trains[i].datetime,
-                                                datetime_end: trains[i].datetime_end
-                                            })
-                                        }
+                            if (payments[k].group == null) continue;
+                            var payment_group_id = payments[k].group.id
+                            if (payments[k].payer == member_id && payment_group_id == trains[i].group && payments[k].starts <= trains[i].datetime && payments[k].ends >= trains[i].datetime_end){
+                                if (payments[k].type == "разовый"){
+                                    if (groups[payment_group_id].once_sum){
+                                        if (!once_pays[train_memebers[j].id]) once_pays[train_memebers[j].id] = {}
+                                        if (!once_pays[train_memebers[j].id][payment_group_id]) once_pays[train_memebers[j].id][payment_group_id] = []
+                                        once_pays[train_memebers[j].id][payment_group_id].push({
+                                            datetime: trains[i].datetime,
+                                            datetime_end: trains[i].datetime_end
+                                        })
                                     }
-                                    if (payments[k].type == "абонемент"){
-                                        if (payments[k].count){
-                                            if (!abon_pays[train_memebers[j].id]) abon_pays[train_memebers[j].id] = {}
-                                            if (!abon_pays[train_memebers[j].id][payment_group_id]) abon_pays[train_memebers[j].id][payment_group_id] = []
-                                            var tmp_obj = {
-                                                starts: payments[k].starts,
-                                                ends: payments[k].ends,
-                                                count: payments[k].count
-                                            }
-                                            var finded = false
-                                            for (var m = 0; m < abon_pays[train_memebers[j].id][payment_group_id].length; m++){
-                                                if (JSON.stringify(abon_pays[train_memebers[j].id][payment_group_id][m]) == JSON.stringify(tmp_obj)) finded = true
-                                            }
-                                            if (!finded) abon_pays[train_memebers[j].id][payment_group_id].push(tmp_obj)
-                                        }
-                                    }                           
                                 }
-                            }                            
+                                if (payments[k].type == "абонемент"){
+                                    if (payments[k].count){
+                                        if (!abon_pays[train_memebers[j].id]) abon_pays[train_memebers[j].id] = {}
+                                        if (!abon_pays[train_memebers[j].id][payment_group_id]) abon_pays[train_memebers[j].id][payment_group_id] = []
+                                        var tmp_obj = {
+                                            starts: payments[k].starts,
+                                            ends: payments[k].ends,
+                                            count: payments[k].count
+                                        }
+                                        var finded = false
+                                        for (var m = 0; m < abon_pays[train_memebers[j].id][payment_group_id].length; m++){
+                                            if (JSON.stringify(abon_pays[train_memebers[j].id][payment_group_id][m]) == JSON.stringify(tmp_obj)) finded = true
+                                        }
+                                        if (!finded) abon_pays[train_memebers[j].id][payment_group_id].push(tmp_obj)
+                                    }
+                                }                           
+                            }                           
                         }
                         if (!group_dates[train_memebers[j].id]) group_dates[train_memebers[j].id] = {}
                         if (!group_dates[train_memebers[j].id][trains[i].group]) group_dates[train_memebers[j].id][trains[i].group] = []
@@ -846,59 +833,57 @@ module.exports = {
             }
             
             for (var i=0; i < payments.length; i++){
-                var payment_groups = payments[i].groups 
-                for (var k=0; k < payment_groups.length; k++){
-                    var payment_group_id = payment_groups[k].id
-                    if (payments[i].payer){
-                        if (groups[payment_group_id].type == "сбор денег"){
-                            result[payments[i].payer][payment_group_id] -= payments[i].sum
-                        }
-                        if (groups[payment_group_id].type == "групповая"){
-                            if (group_dates[payments[i].payer] && group_dates[payments[i].payer][payment_group_id] && group_dates[payments[i].payer][payment_group_id].length){
-                                for (var j=0; j<group_dates[payments[i].payer][payment_group_id].length; j++){
-                                    if (payments[i].starts <= group_dates[payments[i].payer][payment_group_id][j].datetime && payments[i].ends >= group_dates[payments[i].payer][payment_group_id][j].datetime_end){
-                                        if (!result[payments[i].payer][payment_group_id]) result[payments[i].payer][payment_group_id] = 0;
-                                        if (!group_dates[payments[i].payer][payment_group_id][j].once){
-                                            result[payments[i].payer][payment_group_id] -= groups[payment_group_id].sum
-                                        } else {
-                                            result[payments[i].payer][payment_group_id] -= groups[payment_group_id].once_sum
-                                        }
-                                        
-                                    }
-                                }
-                            } else {
-                                if (!result[payments[i].payer]) result[payments[i].payer] = {};
-                                if (!result[payments[i].payer][payment_group_id]) result[payments[i].payer][payment_group_id] = 0;
-                                result[payments[i].payer][payment_group_id] -= payments[i].sum
-                            }               
-                        }
-                        if (groups[payment_group_id].type == "индивидуальная"){
-                            if (personal_dates[payments[i].payer] && personal_dates[payments[i].payer][payment_group_id] && personal_dates[payments[i].payer][payment_group_id].length){
-                                for (var j=0; j<personal_dates[payments[i].payer][payment_group_id].length; j++){
-                                    if (payments[i].starts <= personal_dates[payments[i].payer][payment_group_id][j].datetime && payments[i].ends >= personal_dates[payments[i].payer][payment_group_id][j].datetime_end){
-                                        if (!result[payments[i].payer][payment_group_id]) result[payments[i].payer][payment_group_id] = 0;
+                if (payments[k].group == null) continue;
+                var payment_group_id = payments[i].group.id
+                if (payments[i].payer){
+                    if (groups[payment_group_id].type == "сбор денег"){
+                        result[payments[i].payer][payment_group_id] -= payments[i].sum
+                    }
+                    if (groups[payment_group_id].type == "групповая"){
+                        if (group_dates[payments[i].payer] && group_dates[payments[i].payer][payment_group_id] && group_dates[payments[i].payer][payment_group_id].length){
+                            for (var j=0; j<group_dates[payments[i].payer][payment_group_id].length; j++){
+                                if (payments[i].starts <= group_dates[payments[i].payer][payment_group_id][j].datetime && payments[i].ends >= group_dates[payments[i].payer][payment_group_id][j].datetime_end){
+                                    if (!result[payments[i].payer][payment_group_id]) result[payments[i].payer][payment_group_id] = 0;
+                                    if (!group_dates[payments[i].payer][payment_group_id][j].once){
                                         result[payments[i].payer][payment_group_id] -= groups[payment_group_id].sum
+                                    } else {
+                                        result[payments[i].payer][payment_group_id] -= groups[payment_group_id].once_sum
                                     }
+                                    
                                 }
-                            } else {
-                                if (!result[payments[i].payer]) result[payments[i].payer] = {};
-                                if (!result[payments[i].payer][payment_group_id]) result[payments[i].payer][payment_group_id] = 0;
-                                result[payments[i].payer][payment_group_id] -= payments[i].sum
-                            }                    
-                        }
-                        if (groups[payment_group_id].type == "сборы"){
-                            if (sbor_dates[payment_group_id]) {
-                                if (payments[i].starts <= sbor_dates[payment_group_id].starts && payments[i].ends >= sbor_dates[payment_group_id].ends){
-                                    if (!result[payments[i].payer]) result[payments[i].payer] = {};
+                            }
+                        } else {
+                            if (!result[payments[i].payer]) result[payments[i].payer] = {};
+                            if (!result[payments[i].payer][payment_group_id]) result[payments[i].payer][payment_group_id] = 0;
+                            result[payments[i].payer][payment_group_id] -= payments[i].sum
+                        }               
+                    }
+                    if (groups[payment_group_id].type == "индивидуальная"){
+                        if (personal_dates[payments[i].payer] && personal_dates[payments[i].payer][payment_group_id] && personal_dates[payments[i].payer][payment_group_id].length){
+                            for (var j=0; j<personal_dates[payments[i].payer][payment_group_id].length; j++){
+                                if (payments[i].starts <= personal_dates[payments[i].payer][payment_group_id][j].datetime && payments[i].ends >= personal_dates[payments[i].payer][payment_group_id][j].datetime_end){
                                     if (!result[payments[i].payer][payment_group_id]) result[payments[i].payer][payment_group_id] = 0;
                                     result[payments[i].payer][payment_group_id] -= groups[payment_group_id].sum
                                 }
-                            } else {
+                            }
+                        } else {
+                            if (!result[payments[i].payer]) result[payments[i].payer] = {};
+                            if (!result[payments[i].payer][payment_group_id]) result[payments[i].payer][payment_group_id] = 0;
+                            result[payments[i].payer][payment_group_id] -= payments[i].sum
+                        }                    
+                    }
+                    if (groups[payment_group_id].type == "сборы"){
+                        if (sbor_dates[payment_group_id]) {
+                            if (payments[i].starts <= sbor_dates[payment_group_id].starts && payments[i].ends >= sbor_dates[payment_group_id].ends){
                                 if (!result[payments[i].payer]) result[payments[i].payer] = {};
                                 if (!result[payments[i].payer][payment_group_id]) result[payments[i].payer][payment_group_id] = 0;
-                                result[payments[i].payer][payment_group_id] -= payments[i].sum
-                            }                    
-                        }
+                                result[payments[i].payer][payment_group_id] -= groups[payment_group_id].sum
+                            }
+                        } else {
+                            if (!result[payments[i].payer]) result[payments[i].payer] = {};
+                            if (!result[payments[i].payer][payment_group_id]) result[payments[i].payer][payment_group_id] = 0;
+                            result[payments[i].payer][payment_group_id] -= payments[i].sum
+                        }                    
                     }
                 }
             }

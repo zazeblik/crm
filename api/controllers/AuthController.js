@@ -3,10 +3,7 @@ module.exports = {
     if (req.param("login") && req.param("password")) {
       var login = req.param("login");
       var password = Buffer.from(req.param("password")).toString("base64");
-      Users.findOne({ login: login, password: password }, function(
-        err,
-        profile
-      ) {
+      Users.findOne({ login: login, password: password }, function( err, profile ) {
         if (err) {
           return res.status(400).send(err);
         } else {

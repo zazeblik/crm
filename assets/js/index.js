@@ -15,7 +15,7 @@ function showModelTable(model, query) {
     if (model == "trains") model_name = window.settings_words.trains;
     $("#table_title").text(model_name)
     $("#data_table").attr("data-model", model);
-    if (model == 'persons' || 'groups' ) $(".import_model_btn").show()
+    if (model == 'persons' || model == 'groups' ) $(".import_model_btn").show()
     else $(".import_model_btn").hide()
     $.ajax({
         url: "/attributes/get?model=" + model,
@@ -165,7 +165,7 @@ function showTables() {
                 data.splice(data.splice(data.indexOf("users")), 1);
             }
             for (var i = 0; i < data.length; i++) {
-                if (!data[i].includes("_") && data[i] != "paymentmonths") {
+                if (!data[i].includes("_")) {
                     var label = toRU(data[i])
                     if (data[i] == "trains") label = window.settings_words.trains
                     $("#tables_list").append('<a id="table_' + data[i] + '" class="dropdown-item" data-model="' + data[i] + '">' + label + '</a>')
@@ -379,7 +379,7 @@ function addModel(from_model, from_values) {
                     format: 'LT'
                 })
             }
-            if ($("select[name='group']").length) {
+            if (model == "trains") {
                 autoCompleteDatesAndSum($("select[name='group']").val(), model)
                 $("select[name='group']").unbind("change");
                 $("select[name='group']").on("change", function () {
@@ -387,47 +387,41 @@ function addModel(from_model, from_values) {
                 })
                 $("#datetimepicker_datetime").data("datetimepicker")._notifyEvent = function (e) {
                     if (e.type == "change.datetimepicker") {
-                        correctDates($("select[name='group']").val(), model, this.input[0], null)
+                        correctDates($("select[name='group']").val(), this.input[0], null)
                     }
                 }
             }
-            if ($("select[name='groups']").length) {
-                autoCompleteDatesAndSum($("select[name='groups']").val(), model)
-                $("select[name='groups']").unbind("change");
-                $("select[name='groups']").on("change", function () {
-                    autoCompleteDatesAndSum($(this).val(), model)
-                })
-                $("#datetimepicker_starts").data("datetimepicker")._notifyEvent = function (e) {
-                    if (e.type == "change.datetimepicker") {
-                        var type = null
-                        if ($("select[name='type']").length && model == "payments") type = $("select[name='type']").val() 
-                        correctDates($("select[name='groups']").val(), model, this.input[0], type)
-                    }
-                }
-            }
-            if ($("select[name='type']").length && model == "groups") {
+            if (model == "groups") {
                 $("select[name='type']").unbind("change");
                 $("select[name='type']").on("change", function () {
                     autoHideSchedule($(this).val())
                 })
             }
-            if ($("select[name='groups']").length && model == "payments") {
-                autoHideTypes($("select[name='groups']").val())
-                $("select[name='groups']").unbind("change");
-                $("select[name='groups']").on("change", function () {
-                    autoHideTypes($(this).val()) 
+            if (model == "payments") {
+                autoCompleteDatesAndSum($("select[name='group']").val(), model)
+                autoHideTypes($("select[name='group']").val())
+                $("select[name='group']").unbind("change");
+                $("select[name='group']").on("change", function () {
+                    autoCompleteDatesAndSum($(this).val(), model)
+                    autoHideTypes($(this).val())
+                    autoHideCount($("select[name='type']").val())
                 })
-            }
-            if ($("select[name='type']").length && model == "payments") {
+                $("#datetimepicker_starts").data("datetimepicker")._notifyEvent = function (e) {
+                    if (e.type == "change.datetimepicker") {
+                        var type = $("select[name='type']").val() 
+                        correctDates($("select[name='group']").val(), this.input[0], type)
+                    }
+                }
                 autoHideCount($("select[name='type']").val())
                 $("select[name='type']").unbind("change");
                 $("select[name='type']").on("change", function () {
                     autoHideCount($(this).val())
+                    correctSum($(this).val())
+                    correctDates($("select[name='group']").val(), document.getElementById("prop_starts"), $(this).val())
                 })
-            }
-            if (model == "payments" && from_values && (from_values.starts || from_values.ends)) {
-                if (from_values.starts) $("input[name='starts']").val(moment(Number(from_values.starts)).format('DD.MM.YYYY HH:mm'))
-                if (from_values.ends) $("input[name='ends']").val(moment(Number(from_values.ends)).format('DD.MM.YYYY HH:mm'))
+                
+                if (from_values && from_values.starts) $("input[name='starts']").val(moment(Number(from_values.starts)).format('DD.MM.YYYY HH:mm'))
+                if (from_values && from_values.ends) $("input[name='ends']").val(moment(Number(from_values.ends)).format('DD.MM.YYYY HH:mm'))
             }
         },
         error: function (err) {
@@ -477,12 +471,6 @@ function showEditModel(id, from_model) {
                 $("select[type=collection],select[type=models],select[type=schedule]").multiselect('refresh')
                 $("#modal_title").text(toRU(model) + ": редактирование")
             })
-            if ($("select[name='type']").length && model == "groups") {
-                autoHideSchedule($("select[name='type']").val())
-            }
-            if ($("select[name='groups']").length && model == "payments") {
-                autoHideTypes($("select[name='groups']").val())
-            }
         },
         error: function (err) {
             handleError(err)
@@ -763,32 +751,23 @@ function selectButtonText(options) {
     }
 }
 
-function autoHideCount(type){
-    if (!$("#modal_body").attr("data-id")){
-        var cur_groups = []
-        for (var i = 0; i < last_collection.length; i++){
-            var selected = $("select[name='groups']").val()
-            for (var j = 0; j < selected.length; j++){
-                if (last_collection[i].id == selected[j]){
-                    cur_groups.push(last_collection[i])
-                }
-            }
-        }
-        if (type == "разовый"){
-            var once_sum = 0
-            for (let i = 0; i < cur_groups.length; i++) {
-                if (cur_groups[i].once_sum) once_sum += cur_groups[i].once_sum
-            }
-            $("input[name='sum']").val(once_sum)
-        } else {
-            var sum = 0
-            for (let i = 0; i < cur_groups.length; i++) {
-                if (cur_groups[i].sum) sum += cur_groups[i].sum
-            }
-            $("input[name='sum']").val(sum)
+function correctSum(type){
+    var cur_group;
+    for (var i = 0; i < last_models.length; i++){
+        var selected = $("select[name='group']").val()
+        if (last_models[i].id == selected){
+            cur_group = last_models[i]
         }
     }
-    
+    if (!cur_group) return;
+    if (type == "разовый"){
+        $("input[name='sum']").val(cur_group.once_sum)
+    } else {
+        $("input[name='sum']").val(cur_group.sum)
+    }
+}
+
+function autoHideCount(type){
     if (type != "абонемент"){
         $("label[for='prop_count']").parent().hide();
     } else {
@@ -797,18 +776,15 @@ function autoHideCount(type){
 }
 
 function autoHideTypes(id) {
-    for (var i = 0; i < last_collection.length; i++){
-        for (let j = 0; j < id.length; j++) {
-            if (last_collection[i].id == id[j]){
-                if (last_collection[i].type != "групповая") {
-                    $("label[for='prop_type']").parent().hide();
-                } else {
-                    $("label[for='prop_type']").parent().show();
-                }
+    for (var i = 0; i < last_models.length; i++){
+        if (last_models[i].id == id){
+            if (last_models[i].type != "групповая") {
+                $("label[for='prop_type']").parent().hide();
+            } else {
+                $("label[for='prop_type']").parent().show();
             }
         }
     }
-    autoHideCount($("select[name='type']").val())
 }
 
 function autoHideSchedule(value) {
@@ -829,89 +805,58 @@ function autoHideSchedule(value) {
     }
 }
 
-function setDateInputValue(value, cur_group, el){
-    var moment_date = moment(value, 'DD.MM.YYYY HH:mm')
+function setDateInputValue(value, cur_group, el, type){
+    var moment_date = moment(value, 'DD.MM.YYYY HH:mm');
     var add_duration_date = new Date(moment_date.valueOf())
-    if (cur_group) {
-        add_duration_date.setMinutes(add_duration_date.getMinutes() + cur_group.duration);
+    var group_duration = cur_group.duration || 60;
+    if (type) {
+        if (type == "разовый"){
+            add_duration_date.setMinutes(add_duration_date.getMinutes() + group_duration);
+        } else {
+            if (cur_group.type != "групповая") {
+                add_duration_date.setMinutes(add_duration_date.getMinutes() + group_duration);
+            } else {
+                add_duration_date.setMonth(add_duration_date.getMonth() + 1);
+            }    
+        }
     } else {
-        add_duration_date.setMonth(add_duration_date.getMonth() + 1);
+        if (cur_group.type != "групповая") {
+            add_duration_date.setMinutes(add_duration_date.getMinutes() + group_duration);
+        } else {
+            add_duration_date.setMonth(add_duration_date.getMonth() + 1);
+        }
     }
+    
     var input = $("input[name='ends']");
     if (el) input = el;
     input.val(moment(add_duration_date).format('DD.MM.YYYY HH:mm'))
 }
 
-function correctDates(id, model, el, type) {
-    if (Array.isArray(id)){
-        var cur_groups = []
-        $.ajax({
-            url: "/groups",
-            async: false,
-            data: {
-                where: {
-                    id: id
-                },
-                populate: "updater"
-            },
-            success: function (group) {
-                cur_groups = group;
-            },
-            error: function (err) {
-                handleError(err)
-            }
-        })
-        var cur_input = $(el).attr("name");
-        try {
-            for (var i = 0; i < cur_groups.length; i++){
-                var cur_group = cur_groups[i]
-                if (cur_group.duration) {
-                    if (model == "payments") {
-                        if (cur_input == "starts") {
-                            if (cur_group.type == "индивидуальная") {
-                                setDateInputValue($(el).val(), cur_group);
-                            }
-                        }
-                    }
-                }
-                if (model == "payments" && cur_input == "starts" && cur_group.type == "групповая") {
-                    if (type != "разовый") {
-                        setDateInputValue($(el).val());
-                    } else {
-                        setDateInputValue($(el).val(), cur_group);
-                    }
-                }
-            }
-        } catch (error) {
-            console.log(error)
+function correctDates(id, el, type) {
+    var cur_group = {};
+    $.ajax({
+        url: "/groups/" + id,
+        async: false,
+        data: {
+            populate: "updater"
+        },
+        success: function (group) {
+            cur_group = group;
+        },
+        error: function (err) {
+            handleError(err)
         }
-    } else {
-        var cur_group = {};
-        $.ajax({
-            url: "/groups/" + id,
-            async: false,
-            data: {
-                populate: "updater"
-            },
-            success: function (group) {
-                cur_group = group;
-            },
-            error: function (err) {
-                handleError(err)
-            }
-        })
-        var cur_input = $(el).attr("name");
-        try {
-            if (cur_group.duration) {
-                if (model == "trains") {
-                    if (cur_input == "datetime") {
-                        setDateInputValue($(el).val(), cur_group, $("input[name='datetime_end']"));
-                    }
-                }
-            }
-        } catch (error) {
-            console.log(error)
-        }
+    })
+    try {
+        if (type) {
+            // payments
+            setDateInputValue($(el).val(), cur_group, null, type);
+        } else {
+            // trains
+            setDateInputValue($(el).val(), cur_group, $("input[name='datetime_end']"), null);
+        }        
+    } catch (error) {
+        console.log(error)
     }
 }
 
@@ -934,119 +879,65 @@ function setAutoCompleteInputDates(cur_date, cur_group){
 }
 
 function autoCompleteDatesAndSum(id, model) {
-    if (Array.isArray(id)){
-        var cur_groups = []
-        $.ajax({
-            url: "/groups",
-            async: false,
-            data: {
-                where: {
-                    id: id
-                },
-                populate: "updater"
-            },
-            success: function (group) {
-                cur_groups = group;
-            },
-            error: function (err) {
-                handleError(err)
-            }
-        })
-        try {
-            var cur_date = new Date();
-            if (model == "payments") {
-                var cur_sum = 0
-                for (var i = 0; i < cur_groups.length; i++){
-                    var cur_group = cur_groups[i]
-                    if (cur_group.type == "индивидуальная") {
-                        if ($("#modal_body").attr("data-id")) {
-                            if (cur_group.duration && cur_group.time) {
-                                if (!$("input[name='starts']").val() && !$("input[name='ends']").val()) {
-                                    setAutoCompleteInputDates(cur_date, cur_group);
-                                }
-                            }
-                        } else {
-                            if (cur_group.duration && cur_group.time) {
-                                setAutoCompleteInputDates(cur_date, cur_group);
-                            }
-                        }
-                    } else if (cur_group.type == "групповая") {
-                        if ($("#modal_body").attr("data-id")) {
-                            if (!$("input[name='starts']").val() && !$("input[name='ends']").val()) {
-                                setAutoCompleteInputDates(cur_date);
-                            }
-                        } else {
-                            setAutoCompleteInputDates(cur_date);
-                        }
-                    }
-                    cur_sum += Number(cur_group.sum)
-                }
-                $("input[name=sum]").val(cur_sum)
-            }
-        } catch (error) {
-            console.log(error)
+    var cur_group = {};
+    $.ajax({
+        url: "/groups/" + id,
+        async: false,
+        data: {
+            populate: "updater"
+        },
+        success: function (group) {
+            cur_group = group;
+        },
+        error: function (err) {
+            handleError(err)
         }
-    } else {
-        var cur_group = {};
-        $.ajax({
-            url: "/groups/" + id,
-            async: false,
-            data: {
-                populate: "updater"
-            },
-            success: function (group) {
-                cur_group = group;
-            },
-            error: function (err) {
-                handleError(err)
-            }
-        })
-        try {
-            var cur_date = new Date();
-            if (model == "trains") {
-                if (cur_group.duration && cur_group.time) {
-                    if (!$("input[name='datetime']").val() && !$("input[name='datetime_end']").val()) {
-                        setAutoCompleteInputDates(cur_date, cur_group);
-                    }
+    })
+    try {
+        var cur_date = new Date();
+        if (model == "trains") {
+            if (cur_group.duration && cur_group.time) {
+                if (!$("input[name='datetime']").val() && !$("input[name='datetime_end']").val()) {
+                    setAutoCompleteInputDates(cur_date, cur_group);
                 }
-                if (cur_group.hall) $("[name=hall]").val(cur_group.hall)
-                if (cur_group.trener) $("[name=trener]").multiselect('select', cur_group.trener)
-                if (cur_group.trener) $("[name=trener]").multiselect('refresh')
-            } else if (model == "payments") {
-                if (cur_group.type == "индивидуальная") {
-                    if ($("#modal_body").attr("data-id")) {
-                        if (cur_group.duration && cur_group.time) {
-                            if (!$("input[name='starts']").val() && !$("input[name='ends']").val()) {
-                                setAutoCompleteInputDates(cur_date, cur_group);
-                            }
-                        }
-                    } else {
-                        if (cur_group.duration && cur_group.time) {
+            }
+            if (cur_group.hall) $("[name=hall]").val(cur_group.hall)
+            if (cur_group.trener) $("[name=trener]").multiselect('select', cur_group.trener)
+            if (cur_group.trener) $("[name=trener]").multiselect('refresh')
+        } else if (model == "payments") {
+            
+            if (cur_group.type == "индивидуальная") {
+                if ($("#modal_body").attr("data-id")) {
+                    if (cur_group.duration && cur_group.time) {
+                        if (!$("input[name='starts']").val() && !$("input[name='ends']").val()) {
                             setAutoCompleteInputDates(cur_date, cur_group);
                         }
                     }
-                } else if (cur_group.type == "групповая") {
-                    if ($("#modal_body").attr("data-id")) {
-                        if (!$("input[name='starts']").val() && !$("input[name='ends']").val()) {
-                            setAutoCompleteInputDates(cur_date);
-                        }
-                    } else {
+                } else {
+                    if (cur_group.duration && cur_group.time) {
+                        setAutoCompleteInputDates(cur_date, cur_group);
+                    }
+                }
+            } else if (cur_group.type == "групповая") {
+                if ($("#modal_body").attr("data-id")) {
+                    if (!$("input[name='starts']").val() && !$("input[name='ends']").val()) {
                         setAutoCompleteInputDates(cur_date);
                     }
-                }
-                if (cur_group.sum) {
-                    if ($("#modal_body").attr("data-id")) {
-                        if (!$("input[name='sum']").val()) {
-                            $("input[name='sum']").val(cur_group.sum)
-                        }
-                    } else {
-                        $("input[name='sum']").val(cur_group.sum)
-                    }
+                } else {
+                    setAutoCompleteInputDates(cur_date);
                 }
             }
-        } catch (error) {
-            console.log(error)
+
+            if ($("#modal_body").attr("data-id")) {
+                if (!$("input[name='sum']").val()) {
+                    $("input[name='sum']").val(cur_group.sum)
+                }
+            } else {
+                $("input[name='sum']").val(cur_group.sum)
+            }
         }
+    } catch (error) {
+        console.log(error)
     }
 }
 
@@ -1802,6 +1693,29 @@ function renderStatsPayments() {
     var month_date = new Date(year, month);
     var next_month_date = new Date(year, month);
     next_month_date.setMonth(next_month_date.getMonth() + 1);
+
+
+    $("#stats_payments_trains").text("");
+    $("#stats_payments_visits").text("");
+    $("#stats_payments_pays").text("");
+    $("#stats_payments_sum").text("");
+    $.ajax({
+        url: "/attributes/total",
+        data: {
+            start: month_date.getTime(),
+            end: next_month_date.getTime()
+        },
+        success: function (data) {
+            $("#stats_payments_trains").text(data.trains);
+            $("#stats_payments_visits").text(data.visits);
+            $("#stats_payments_pays").text(data.pays);
+            $("#stats_payments_sum").text(data.sum);
+        },
+        error: function (err) {
+            handleError(err)
+        }
+    })
+
     if (paysChart && paysChart.destroy) paysChart.destroy()
     var ctx = document.getElementById("stats_payments_canvas");
     var labels = [];
@@ -2008,10 +1922,8 @@ function renderReport() {
                                             })
                                             if (abon_trains.length){
                                                 var other_group_ids = []
-                                                for (var j = 0; j < payments[i].groups.length; j++){
-                                                    if (payments[i].groups[j].id != group_id){
-                                                        other_group_ids.push(payments[i].groups[j].id)
-                                                    }
+                                                if (payments[i].group.id != group_id){
+                                                    other_group_ids.push(payments[i].group.id)
                                                 }
                                                 $.ajax({
                                                     url: "/trains",
@@ -2353,7 +2265,7 @@ function getDebtDates(el) {
                     setElementEvent($("#unpayed_" + data[i].group + data[i].starts + data[i].ends), "click", function () {
                         $(".modal-save-btn").hide()
                         $("#add_pays_btn").show()
-                        addModel("payments", {type: $(this).attr("data-type"), payer: $(this).attr("data-payer"), groups: $(this).attr("data-group"), starts: $(this).attr("data-starts"), ends: $(this).attr("data-ends") })
+                        addModel("payments", {type: $(this).attr("data-type"), payer: $(this).attr("data-payer"), group: $(this).attr("data-group"), starts: $(this).attr("data-starts"), ends: $(this).attr("data-ends") })
                     })
                 }
                 var months_start = new Date()
@@ -2406,7 +2318,6 @@ function showPaysForm() {
             handleError(err);
         }
     })
-
 }
 
 function showAddTrainDatepicker() {

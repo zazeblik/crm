@@ -9,14 +9,11 @@ module.exports = {
                     where: {
                         or: [{ starts: { "<": end } }, { ends: { ">=": start } }]
                     }
-                }).populate("groups").sort("starts ASC")
+                }).sort("starts ASC")
                 var pays = []
                 for (var i=0; i < pays_data.length; i++){
-                    for (let j = 0; j < pays_data[i].groups.length; j++) {
-                        const pay_group = pays_data[i].groups[j];
-                        if (pay_group.id == group) {
-                            pays.push(pays_data[i])
-                        }
+                    if (pays_data[i].group == group) {
+                        pays.push(pays_data[i])
                     }
                 }
                 return res.send(pays)

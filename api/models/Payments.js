@@ -4,8 +4,8 @@ module.exports = {
     payer: {
       model: "Persons"
     },
-    groups: {
-      collection: "Groups"
+    group: {
+      model: "Groups"
     },
     sum: {
       type: "number",
