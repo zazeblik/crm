@@ -276,7 +276,7 @@ module.exports = {
                 var trains = payer.trains.sort(function(a, b) {
                     return parseFloat(a.datetime) - parseFloat(b.datetime);
                 })
-                var payments = await Payments.find({payer: payer_id}).populate('group', find_group_obj).sort("starts DESC")
+                var payments = await Payments.find({payer: payer_id}).populate('group').sort("starts DESC")
                 var group_dates = {}
                 var personal_dates = {}
                 var sbor_dates = {}

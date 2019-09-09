@@ -1921,46 +1921,46 @@ function renderReport() {
                                                 }
                                             })
                                             if (abon_trains.length){
-                                                var other_group_ids = []
                                                 if (payments[i].group.id != group_id){
-                                                    other_group_ids.push(payments[i].group.id)
-                                                }
-                                                $.ajax({
-                                                    url: "/trains",
-                                                    async: false,
-                                                    data: {
-                                                        sort: "datetime ASC",
-                                                        select: "datetime,datetime_end",
-                                                        populate: "members",
-                                                        where: JSON.stringify({ group: other_group_ids, datetime: { ">=": payments[i].starts, "<": payments[i].ends } })
-                                                    },
-                                                    success: function (other_trains) {
-                                                        var other = [];
-                                                        var abon_start_datetimes = [];
-                                                        for (var j = 0; j < other_trains.length; j++){
-                                                            for (var n = 0; n < other_trains[j].members.length; n++) {
-                                                                if (other_trains[j].members[n].id == payments[i].payer) {
-                                                                    other.push(other_trains[j])
-                                                                    abon_start_datetimes.push(other_trains[j].datetime)
+                                                    var other_group_id = payments[i].group.id
+                                                    $.ajax({
+                                                        url: "/trains",
+                                                        async: false,
+                                                        data: {
+                                                            sort: "datetime ASC",
+                                                            select: "datetime,datetime_end",
+                                                            populate: "members",
+                                                            where: JSON.stringify({ group: other_group_id, datetime: { ">=": payments[i].starts, "<": payments[i].ends } })
+                                                        },
+                                                        success: function (other_trains) {
+                                                            var other = [];
+                                                            var abon_start_datetimes = [];
+                                                            for (var j = 0; j < other_trains.length; j++){
+                                                                for (var n = 0; n < other_trains[j].members.length; n++) {
+                                                                    if (other_trains[j].members[n].id == payments[i].payer) {
+                                                                        other.push(other_trains[j])
+                                                                        abon_start_datetimes.push(other_trains[j].datetime)
+                                                                    }
                                                                 }
                                                             }
-                                                        }
-                                                        for (var j = 0; j < abon_trains.length; j++){
-                                                            abon_start_datetimes.push(Number($(abon_trains[j]).attr("data-datetime")))
-                                                        }
-                                                        abon_start_datetimes.sort();
-                                                        if (abon_start_datetimes.length > payments[i].count) {
-                                                            abon_start_datetimes = abon_start_datetimes.slice(0, payments[i].count);
-                                                        }
-                                                        var delta = 0;
-                                                        for (var j = 0; j < abon_trains.length; j++){
-                                                            if (abon_start_datetimes.includes(Number($(abon_trains[j]).attr("data-datetime")))) {
-                                                                delta++
+                                                            for (var j = 0; j < abon_trains.length; j++){
+                                                                abon_start_datetimes.push(Number($(abon_trains[j]).attr("data-datetime")))
                                                             }
+                                                            abon_start_datetimes.sort();
+                                                            if (abon_start_datetimes.length > payments[i].count) {
+                                                                abon_start_datetimes = abon_start_datetimes.slice(0, payments[i].count);
+                                                            }
+                                                            var delta = 0;
+                                                            for (var j = 0; j < abon_trains.length; j++){
+                                                                if (abon_start_datetimes.includes(Number($(abon_trains[j]).attr("data-datetime")))) {
+                                                                    delta++
+                                                                }
+                                                            }
+                                                            payments[i].count = delta
                                                         }
-                                                        payments[i].count = delta
-                                                    }
-                                                })
+                                                    })
+                                                }
+                                                
                                             }
                                             var to_print = []
                                             for (var j = 0; j < abon_trains.length; j++){
