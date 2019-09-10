@@ -89,8 +89,6 @@ th[sort="ASC"]:after {
     border-left: 5px solid transparent;
     border-top: 5px solid transparent;
     border-bottom: 5px solid #495057;
-    position: absolute;
-    margin-top: 5px;
 }
 
 th[sort="DESC"]:after {
@@ -99,6 +97,4 @@ th[sort="DESC"]:after {
     border-left: 5px solid transparent;
     border-top: 5px solid #495057;
     border-bottom: 5px solid transparent;
-    position: absolute;
-    margin-top: 10px;
 }

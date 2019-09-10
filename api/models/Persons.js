@@ -37,10 +37,10 @@ module.exports = {
       type: 'string',
       allowNull: true
     },
-    // rank_book_exists: {
-    //   type: 'boolean',
-    //   defaultsTo: false
-    // },
+    rank_book_exists: {
+      type: 'boolean',
+      defaultsTo: false
+    },
     personality: {
       type: 'string',
       allowNull: true

@@ -1,4 +1,5 @@
 var datetimes = ["datetime", "datetime_end", "starts", "ends", "updatedAt", "createdAt"]
+var dates = ["birthday"]
 var times = ["time"]
 var trenersChart, membersChart, paysChart;
 var last_collection = []
@@ -90,6 +91,8 @@ function showModelTable(model, query) {
                                     to_cell = to_cell.replace("7", "вс")
                                 } else if (attributes[fields[j]].collection) {
                                     to_cell = data[i][fields[j]].length;
+                                } else if (attributes[fields[j]].type == "boolean") {
+                                    to_cell = data[i][fields[j]] ? '<i class="fa fa-check"></i>' : '';
                                 } else if (attributes[fields[j]].model) {
                                     var toViewField = "id";
                                     if (data[i][fields[j]].toView) {
@@ -244,7 +247,7 @@ function addModel(from_model, from_values) {
                                 }
                             } else if (data[prop].type == "boolean") {
                                 var checked_text = valueToInsert ? "checked" : "";
-                                modal_body += '<input id="prop_' + prop + '" type="checkbox" name="' + prop + '" required="' + data[prop].required + '" value="' + checked_text + '" class="form-control form-control-sm">'
+                                modal_body += '<input id="prop_' + prop + '" type="checkbox" name="' + prop + '" required="' + data[prop].required + '" "' + checked_text + '" class="form-control form-control-sm">'
                             } else {
                                 if (prop == "password") {
                                     modal_body += '<input id="prop_' + prop + '" type="password" name="' + prop + '" required="' + data[prop].required + '" value="' + valueToInsert + '" class="form-control form-control-sm">'
@@ -423,7 +426,6 @@ function addModel(from_model, from_values) {
                     correctSum($(this).val())
                     correctDates($("select[name='group']").val(), document.getElementById("prop_starts"), $(this).val())
                 })
-                
                 if (from_values && from_values.starts) $("input[name='starts']").val(moment(Number(from_values.starts)).format('DD.MM.YYYY HH:mm'))
                 if (from_values && from_values.ends) $("input[name='ends']").val(moment(Number(from_values.ends)).format('DD.MM.YYYY HH:mm'))
             }
@@ -448,6 +450,9 @@ function showEditModel(id, from_model) {
         success: function (data) {
             $(".form-control[name]").each(function (index, el) {
                 var name = $(el).attr("name");
+                if ($(el).attr("type") == "checkbox" && data[name]) {
+                    $(el).prop("checked", true);
+                }
                 if (Array.isArray(data[name])) {
                     for (var i = 0; i < data[name].length; i++) {
                         $(el).find("option[value=" + data[name][i].id + "]").prop("selected", true);
@@ -514,8 +519,12 @@ function saveModel(from_model, cb) {
         var to_post = {};
         var to_put = {};
         $(".form-control[name]").each(function (index, el) {
+            var attr_name = $(el).attr("name");
+            if ($(el).attr("type") == "checkbox") {
+                to_post[attr_name] = $(el).prop("checked");
+                return;
+            }
             if ($(el).val()) {
-                var attr_name = $(el).attr("name");
                 if (Array.isArray($(el).val())) {
                     if (attr_name == "schedule") {
                         to_post[attr_name] = ($(el).val()).toString();
@@ -586,6 +595,10 @@ function saveModel(from_model, cb) {
                 var assocs_remove = {}
                 $(".form-control[name]").each(function (index, el) {
                     var name = $(el).attr("name");
+                    if ($(el).attr("type") == "checkbox") {
+                        update_obj[name] = $(el).prop("checked");
+                        return;
+                    }
                     if (Array.isArray(base_model[name]) && prop != "schedule") {
                         var val_arr = $(el).val() || [];
                         assocs_add[name] = [];
