@@ -9,7 +9,7 @@ module.exports = {
       type: 'string',
       allowNull: true
     },
-    dance_class: {
+    starts_group: {
       type: 'string',
       allowNull: true
     },
@@ -17,10 +17,30 @@ module.exports = {
       type: 'string',
       allowNull: true
     },
+    dance_class: {
+      type: 'string',
+      allowNull: true
+    },
+    dance_class_approve_date: {
+      type: 'string',
+      allowNull: true
+    },
     rank: {
       type: 'string',
       allowNull: true
     },
+    rank_minsport: {
+      type: 'string',
+      allowNull: true
+    },
+    rank_ends: {
+      type: 'string',
+      allowNull: true
+    },
+    // rank_book_exists: {
+    //   type: 'boolean',
+    //   defaultsTo: false
+    // },
     personality: {
       type: 'string',
       allowNull: true

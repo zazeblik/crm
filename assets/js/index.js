@@ -179,6 +179,7 @@ function showTables() {
                     });
                 }
             }
+            if (window.profile.role == "тренер") $("#table_payments, #table_users").hide()
             $("#plans_menu_item").click();
         },
         error: function (err) {
@@ -241,6 +242,9 @@ function addModel(from_model, from_values) {
                                 } else {
                                     modal_body += '<input id="prop_' + prop + '" type="number" name="' + prop + '" required="' + data[prop].required + '" value="' + valueToInsert + '" class="form-control form-control-sm">'
                                 }
+                            } else if (data[prop].type == "boolean") {
+                                var checked_text = valueToInsert ? "checked" : "";
+                                modal_body += '<input id="prop_' + prop + '" type="checkbox" name="' + prop + '" required="' + data[prop].required + '" value="' + checked_text + '" class="form-control form-control-sm">'
                             } else {
                                 if (prop == "password") {
                                     modal_body += '<input id="prop_' + prop + '" type="password" name="' + prop + '" required="' + data[prop].required + '" value="' + valueToInsert + '" class="form-control form-control-sm">'
@@ -521,6 +525,8 @@ function saveModel(from_model, cb) {
                 } else {
                     if (datetimes.includes(attr_name)) {
                         to_post[attr_name] = moment($(el).val(), 'DD.MM.YYYY HH:mm').valueOf();
+                    } if ($(el).attr("type") == "checkbox") {
+                        to_post[attr_name] = $(el).prop("checked");
                     } else {
                         to_post[attr_name] = $(el).val();
                     }
@@ -613,6 +619,7 @@ function saveModel(from_model, cb) {
                     }
                 })
                 update_obj.updater = window.profile.id;
+                console.log(update_obj);
                 $.ajax({
                     url: "/" + model_name + "/" + id,
                     type: "PATCH",
@@ -668,9 +675,9 @@ function clearAll() {
     $("#login").val("");
     $("#password").val("");
     if (window.profile && window.profile.role == "тренер") {
-        $("#base_menu_item, #stats_members_menu_item, #stats_treners_menu_item, #stats_payments_menu_item, #pays_menu_item").hide()
+        $("#stats_members_menu_item, #stats_treners_menu_item, #stats_payments_menu_item, #pays_menu_item").hide()
     } else {
-        $("#base_menu_item, #stats_members_menu_item, #stats_treners_menu_item, #stats_payments_menu_item, #pays_menu_item").show()
+        $("#stats_members_menu_item, #stats_treners_menu_item, #stats_payments_menu_item, #pays_menu_item").show()
     }
 }
 

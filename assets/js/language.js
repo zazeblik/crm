@@ -42,7 +42,12 @@ var words = {
     "time": "Время",
     "phone": "Телефон",
     "role": "Роль",
-    "address": "Адрес"
+    "address": "Адрес",
+    "starts_group": "Стартовая группа",
+    "dance_class_approve_date": "Дата присвоения",
+    "rank_minsport": "Разряд Мин.Спорта",
+    "rank_ends": "Действие разряда",
+    "rank_book_exists": "Разрядная книжка"
 }
 
 function toRU(word) {
