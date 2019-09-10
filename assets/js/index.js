@@ -525,7 +525,7 @@ function saveModel(from_model, cb) {
                 } else {
                     if (datetimes.includes(attr_name)) {
                         to_post[attr_name] = moment($(el).val(), 'DD.MM.YYYY HH:mm').valueOf();
-                    } if ($(el).attr("type") == "checkbox") {
+                    } else if ($(el).attr("type") == "checkbox") {
                         to_post[attr_name] = $(el).prop("checked");
                     } else {
                         to_post[attr_name] = $(el).val();
