@@ -6,7 +6,7 @@ module.exports = {
       required: true
     },
     birthday: {
-      type: 'string',
+      type: 'number',
       allowNull: true
     },
     starts_group: {

@@ -1,13 +1,5 @@
-/**
- * Blueprint API Configuration
- * (sails.config.blueprints)
- *
- * For background on the blueprint API in Sails, check out:
- * https://sailsjs.com/docs/reference/blueprint-api
- *
- * For details and more available options, see:
- * https://sailsjs.com/config/blueprints
- */
+const datetimes = ["datetime","datetime_end","starts","ends","updatedAt","createdAt"]
+const dates = ["birthday"]
 
 module.exports.blueprints = {
 
@@ -150,13 +142,19 @@ module.exports.blueprints = {
           where: {}
         };
         queryOptions.criteria.where[Model.primaryKey] = req.param('id');
-        queryOptions.meta = { fetch: true };
+        //queryOptions.meta = { fetch: true };
         queryOptions.valuesToSet = (function getValuesToSet(){
           var values = _.omit(req.allParams(), 'id');
+          for (var value in values){
+            if ((dates.includes(value) || datetimes.includes(value)) && (values[value] == '' || values[value] == 'NaN')) {
+              values[value] = null;
+            }
+          }
           if (typeof values[Model.primaryKey] !== 'undefined' && values[Model.primaryKey] !== queryOptions.criteria.where[Model.primaryKey]) {
             req._sails.log.warn('Cannot change primary key via update blueprint; ignoring value sent for `' + Model.primaryKey + '`');
           }
           values[Model.primaryKey] = queryOptions.criteria.where[Model.primaryKey];
+          
           return values;
         })();
         break;

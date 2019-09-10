@@ -1,5 +1,6 @@
 var moment = require("moment");
 const datetimes = ["datetime","datetime_end","starts","ends","updatedAt","createdAt"]
+const dates = ["birthday"]
 const months_names = [ "Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь" ]
 const words_path = sails.config.appPath+'/config/locales/ru.json'
 const transform = {
@@ -126,6 +127,8 @@ module.exports = {
                         } else if (attributes[prop].type == "number"){
                             if (datetimes.includes(prop)){
                                 conditions[prop] = {">=": moment(conditions[prop], "DD.MM.YYYY HH:mm").valueOf()}
+                            } else if (dates.includes(prop)){
+                                conditions[prop] = {">=": moment(conditions[prop], "DD.MM.YYYY").valueOf()}
                             } else {
                                 conditions[prop] = Number(conditions[prop]);
                             }

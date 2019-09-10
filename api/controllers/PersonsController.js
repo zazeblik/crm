@@ -1,5 +1,6 @@
 var XLSX = require('xlsx');
 var fs = require("fs");
+var moment = require('moment')
 module.exports = {
     import: function (req, res) {
         if (req.method == "POST" && req.file('file0')) {
@@ -34,9 +35,18 @@ module.exports = {
                                 for (var i = 0; i < json.length; i++){
                                     var tmp = {updater: req.session.User.id};
                                     for (var prop in json[i]){
-                                       if(json[i][prop]) tmp[transform[prop]] = json[i][prop]
+                                        if(transform[prop] == 'birthday') {
+                                            if (json[i][prop] == '') {
+                                                tmp[transform[prop]] = null;
+                                            } else {
+                                                tmp[transform[prop]] = moment(json[i][prop], 'DD.MM.YYYY').valueOf();
+                                            }
+                                        } else {
+                                            if(json[i][prop]) tmp[transform[prop]] = json[i][prop];
+                                        }
+                                        
                                     }
-                                    result.push(tmp);
+                                    if (tmp.name) result.push(tmp);
                                 }
                                 Persons.createEach(result).exec(function(err){
                                     if (err) {

@@ -80,6 +80,8 @@ function showModelTable(model, query) {
                                     to_cell = "********";
                                 } else if (datetimes.includes(fields[j])) {
                                     to_cell = moment(data[i][fields[j]]).format('DD.MM.YYYY HH:mm');
+                                } else if (dates.includes(fields[j])) {
+                                    to_cell = moment(data[i][fields[j]]).format('DD.MM.YYYY');
                                 } else if (fields[j] == "schedule") {
                                     to_cell = data[i][fields[j]];
                                     to_cell = to_cell.replace("1", "пн")
@@ -242,6 +244,15 @@ function addModel(from_model, from_values) {
                                             <div class="input-group-text"><i class="fa fa-calendar"></i></div>\
                                         </div>\
                                     </div>'
+                                } else if (dates.includes(prop)) {
+                                    if (valueToInsert) valueToInsert = moment(Number(valueToInsert)).format('DD.MM.YYYY');
+                                    modal_body +=
+                                        '<div class="input-group date" id="datetimepicker_' + prop + '" data-target-input="nearest">\
+                                        <input id="prop_'+ prop + '" type="text" name="' + prop + '" required="' + data[prop].required + '" value="' + valueToInsert + '" class="form-control datetimepicker-input" data-target="#datetimepicker_' + prop + '"/>\
+                                        <div class="input-group-append" data-target="#datetimepicker_'+ prop + '" data-toggle="datetimepicker">\
+                                            <div class="input-group-text"><i class="fa fa-calendar"></i></div>\
+                                        </div>\
+                                    </div>'
                                 } else {
                                     modal_body += '<input id="prop_' + prop + '" type="number" name="' + prop + '" required="' + data[prop].required + '" value="' + valueToInsert + '" class="form-control form-control-sm">'
                                 }
@@ -380,6 +391,12 @@ function addModel(from_model, from_values) {
                     locale: 'ru'
                 })
             }
+            for (var i = 0; i < dates.length; i++) {
+                $('#datetimepicker_' + dates[i]).datetimepicker({
+                    locale: 'ru',
+                    format: 'DD.MM.YYYY'
+                })
+            }
             for (var i = 0; i < times.length; i++) {
                 $('#datetimepicker_' + times[i]).datetimepicker({
                     locale: 'ru',
@@ -471,6 +488,8 @@ function showEditModel(id, from_model) {
                         } else {
                             if (datetimes.includes(name)) {
                                 $(el).val(moment(data[name]).format('DD.MM.YYYY HH:mm'));
+                            } else if (dates.includes(name)) {
+                                $(el).val(moment(data[name]).format('DD.MM.YYYY'));
                             } else {
                                 $(el).val(data[name]);
                             }
@@ -534,6 +553,8 @@ function saveModel(from_model, cb) {
                 } else {
                     if (datetimes.includes(attr_name)) {
                         to_post[attr_name] = moment($(el).val(), 'DD.MM.YYYY HH:mm').valueOf();
+                    } else if (dates.includes(attr_name)) {
+                        to_post[attr_name] = moment($(el).val(), 'DD.MM.YYYY').valueOf();                     
                     } else if ($(el).attr("type") == "checkbox") {
                         to_post[attr_name] = $(el).prop("checked");
                     } else {
@@ -618,6 +639,8 @@ function saveModel(from_model, cb) {
                     } else {
                         if (datetimes.includes(name)) {
                             update_obj[name] = moment($(el).val(), 'DD.MM.YYYY HH:mm').valueOf();
+                        } else if (dates.includes(name)) {
+                           update_obj[name] = moment($(el).val(), 'DD.MM.YYYY').valueOf();    
                         } else {
                             if ($(el).attr("name") == "schedule") {
                                 update_obj[name] = ($(el).val()).toString();
@@ -632,7 +655,6 @@ function saveModel(from_model, cb) {
                     }
                 })
                 update_obj.updater = window.profile.id;
-                console.log(update_obj);
                 $.ajax({
                     url: "/" + model_name + "/" + id,
                     type: "PATCH",
@@ -1094,6 +1116,8 @@ function exportModel() {
                                     to_cell = "********";
                                 } else if (datetimes.includes(fields[j])) {
                                     to_cell = moment(data[i][fields[j]]).format('DD.MM.YYYY HH:mm');
+                                } else if (dates.includes(fields[j])) {
+                                    to_cell = moment(data[i][fields[j]]).format('DD.MM.YYYY');
                                 } else if (fields[j] == "schedule") {
                                     to_cell = data[i][fields[j]];
                                     to_cell = to_cell.replace("1", "пн")
