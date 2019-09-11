@@ -9,10 +9,6 @@ module.exports = {
       type: 'number',
       allowNull: true
     },
-    starts_group: {
-      type: 'string',
-      allowNull: true
-    },
     book_number: {
       type: 'string',
       allowNull: true

@@ -30,6 +30,12 @@ function showModelTable(model, query) {
                     if (prop == "trains") th_label = window.settings_words.trains;
                     $("#table_head").append('<th scope="col" data-prop="' + prop + '">' + th_label + '</th>');
                     $("#table_filters").append('<th><input type="text" data-filter="' + prop + '" class="form-control form-control-sm" /></th>');
+                    if (prop == "birthday") {
+                        $("#table_head").append('<th scope="col">' + toRU("age") + '</th>');
+                        $("#table_filters").append('<th></th>');
+                        $("#table_head").append('<th scope="col">' + toRU("age_group") + '</th>');
+                        $("#table_filters").append('<th></th>');
+                    }
                     setElementEvent($('input[data-filter="' + prop + '"]'), "change", function () {
                         updateLimitTable()
                     });
@@ -113,6 +119,16 @@ function showModelTable(model, query) {
                             }
                             if (model=="groups" && fields[j] == "type" && to_cell == "сборы") to_cell = window.settings_words.course;
                             table_row += '<td data-prop="' + fields[j] + '">' + to_cell + '</td>';
+                            if (fields[j] == "birthday") {
+                                let age = "";
+                                let age_group = "";
+                                if (to_cell) {
+                                    age = birthDateToAge(data[i][fields[j]]);
+                                    age_group = getGroupAge(age);
+                                }
+                                table_row += '<td class="text-center">'+age+'</td>';
+                                table_row += '<td class="text-center">'+age_group+'</td>';
+                            }
                         }
                         table_row += '</tr>';
                         $("#table_body").append(table_row);
@@ -191,6 +207,24 @@ function showTables() {
             handleError(err)
         }
     })
+}
+
+function getGroupAge(age){
+    if (age <= 7) {
+        return "Дети-Н"
+    } else if (age >=8 && age <= 9) {
+        return "Дети-1"
+    } else if (age >=10 && age <= 11) {
+        return "Дети-2"
+    } else if (age >=12 && age <= 13) {
+        return "Юниоры-1"
+    } else if (age >=14 && age <= 15) {
+        return "Юниоры-2"
+    } else if (age >=16 && age <= 18) {
+        return "Молодежь"
+    } else {
+        return "Взрослые"
+    }
 }
 
 function addModel(from_model, from_values) {
@@ -1071,93 +1105,35 @@ function importModel() {
     $("#fileInput").click();
 }
 
+function ec(r, c){
+    return XLSX.utils.encode_cell({r:r,c:c});
+}
+function deleteRow(ws, row_index){
+    var variable = XLSX.utils.decode_range(ws["!ref"])
+    for(var R = row_index; R < variable.e.r; ++R){
+      for(var C = variable.s.c; C <= variable.e.c; ++C){
+        ws[ec(R,C)] = ws[ec(R+1,C)];
+      }
+    }
+    variable.e.r--
+    ws['!ref'] = XLSX.utils.encode_range(variable.s, variable.e);
+  }
+
 function exportModel() {
-    var model = $("#data_table").attr("data-model");
-    var conditions = {};
-    $("input[data-filter]").each(function (index, el) {
-        if ($(el).val()) {
-            conditions[$(el).attr("data-filter")] = $(el).val();
-        }
-    })
-    var sort = "updatedAt DESC";
-    if ($("th[sort]").length) {
-        sort = $("th[sort]").attr("data-prop") + " " + $("th[sort]").attr("sort")
-    }
-    var rows = $(".count_on_page").val();
-    var page = $(".cur_page").val()
-    var query = {
-        model: model,
-        conditions: conditions,
-        sort: sort,
-        rows: rows,
-        page: page
-    }
-    $.ajax({
-        url: "/attributes/get?model=" + model,
-        success: function (attributes) {
-            var fields = [];
-            for (var prop in attributes) {
-                if (prop != "id" && prop != "createdAt" && prop != "updatedAt" && prop != "toView" && !attributes[prop].collection && !attributes[prop].model) {
-                    fields.push(prop);
-                }
-            }
-            $.ajax({
-                url: "/attributes/list",
-                data: query,
-                success: function (response) {
-                    var data = response.data;
-                    var result = [];
-                    for (var i = 0; i < data.length; i++) {
-                        result.push({});
-                        for (var j = 0; j < fields.length; j++) {
-                            var to_cell = "";
-                            if (data[i][fields[j]] && !attributes[fields[j]].collection && !attributes[fields[j]].model) {
-                                if (fields[j] == "password") {
-                                    to_cell = "********";
-                                } else if (datetimes.includes(fields[j])) {
-                                    to_cell = moment(data[i][fields[j]]).format('DD.MM.YYYY HH:mm');
-                                } else if (dates.includes(fields[j])) {
-                                    to_cell = moment(data[i][fields[j]]).format('DD.MM.YYYY');
-                                } else if (fields[j] == "schedule") {
-                                    to_cell = data[i][fields[j]];
-                                    to_cell = to_cell.replace("1", "пн")
-                                    to_cell = to_cell.replace("2", "вт")
-                                    to_cell = to_cell.replace("3", "ср")
-                                    to_cell = to_cell.replace("4", "чт")
-                                    to_cell = to_cell.replace("5", "пт")
-                                    to_cell = to_cell.replace("6", "сб")
-                                    to_cell = to_cell.replace("7", "вс")
-                                } else {
-                                    to_cell = data[i][fields[j]];
-                                }
-                            }
-                            var name = toRU(fields[j])
-                            result[i][name] = to_cell;
-                        }
-                    }
-                    var wb = XLSX.utils.book_new();
-                    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(result), "data");
-                    var wopts = { bookType: 'xlsx', type: 'array' };
-                    var wbout = XLSX.write(wb, wopts);
-                    var fileName = toRU(model);
-                    var link = document.createElement("a");
-                    var blob = new Blob([wbout], { type: "application/octet-stream" });
-                    link.href = window.URL.createObjectURL(blob);
-                    link.style = "visibility:hidden";
-                    link.download = fileName + ".xlsx";
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                },
-                error: function (err) {
-                    handleError(err)
-                }
-            })
-        },
-        error: function (err) {
-            handleError(err)
-        }
-    })
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.table_to_sheet(document.getElementById("data_table")));
+    var wopts = { bookType: 'xlsx', type: 'array' };
+    deleteRow(wb.Sheets[wb.SheetNames[0]], 1);
+    var wbout = XLSX.write(wb, wopts);
+    var fileName = toRU($("#data_table").attr("data-model"));
+    var link = document.createElement("a");
+    var blob = new Blob([wbout], { type: "application/octet-stream" });
+    link.href = window.URL.createObjectURL(blob);
+    link.style = "visibility:hidden";
+    link.download = fileName + ".xlsx";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 function showJournals() {
@@ -1338,6 +1314,16 @@ function showTrainsList(group_id, group_label, cur_page) {
         }
     })
 }
+
+function birthDateToAge(birthDate) {
+    birthDate = new Date(birthDate);
+
+    var now = new Date(),
+        age = now.getFullYear() - birthDate.getFullYear();
+
+    return now.setFullYear(1972) < birthDate.setFullYear(1972) ? age - 1 : age;
+}
+
 
 function updateShowTrain(train_id, group_id, trener_id, train_name) {
     $("#train_journal_title").text(window.settings_words["train"]+": " + train_name)
