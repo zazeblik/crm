@@ -124,7 +124,9 @@ function showModelTable(model, query) {
                                 let age_group = "";
                                 if (to_cell) {
                                     age = birthDateToAge(data[i][fields[j]]);
-                                    age_group = getGroupAge(age);
+                                    let nextYearDate = new Date(data[i][fields[j]])
+                                    nextYearDate.setFullYear(nextYearDate.getFullYear() - 1);
+                                    age_group = getGroupAge(data[i][fields[j]]) + " / " +getGroupAge(nextYearDate.getTime());
                                 }
                                 table_row += '<td class="text-center">'+age+'</td>';
                                 table_row += '<td class="text-center">'+age_group+'</td>';
@@ -209,7 +211,11 @@ function showTables() {
     })
 }
 
-function getGroupAge(age){
+function getGroupAge(birthDateTime){
+    let birthDate = new Date(birthDateTime);
+    let birthYear = birthDate.getFullYear()
+    let curYear = new Date().getFullYear();
+    let age = curYear - birthYear;
     if (age <= 7) {
         return "Дети-Н"
     } else if (age >=8 && age <= 9) {

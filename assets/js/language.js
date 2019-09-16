@@ -43,7 +43,7 @@ var words = {
     "phone": "Телефон",
     "role": "Роль",
     "address": "Адрес",
-    "age_group": "Возраст",
+    "age_group": "Возраст / На след.год",
     "dance_class_approve_date": "Дата присвоения",
     "rank_minsport": "Разряд Мин.Спорта",
     "rank_ends": "Действие разряда",
