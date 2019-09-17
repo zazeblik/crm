@@ -1,21 +1,21 @@
-/**
- * Bootstrap
- * (sails.config.bootstrap)
- *
- * An asynchronous bootstrap function that runs just before your Sails app gets lifted.
- * > Need more flexibility?  You can also do this by creating a hook.
- *
- * For more information on bootstrapping your app, check out:
- * https://sailsjs.com/config/bootstrap
- */
-
 module.exports.bootstrap = async function(done) {
-
-  // By convention, this is a good place to set up fake data during development.
-  //
-  // For example:
-  // ```
-  // // Set up fake development data (or if we already have some, avast)
+  let groups = await Groups.find({});
+  let sumchanges = await Sumchanges.find({});
+  
+  let unique_changes_group_ids = new Set();
+  for (let i = 0; i < sumchanges.length; i++){
+    unique_changes_group_ids.add(sumchanges[i].group);
+  }
+  for (let i = 0; i < groups.length; i++){
+    let group_id = groups[i].id;
+    if (!unique_changes_group_ids.has(group_id)) {
+      await Sumchanges.create({
+        group: group_id,
+        sum: groups[i].sum,
+        once_sum: groups[i].once_sum
+      })
+    }
+  }
   if (await Users.count() > 0) {
     return done();
   } else {
@@ -27,16 +27,4 @@ module.exports.bootstrap = async function(done) {
     })
     return done();
   }
-  //
-  // await User.createEach([
-  //   { emailAddress: 'ry@example.com', fullName: 'Ryan Dahl', },
-  //   { emailAddress: 'rachael@example.com', fullName: 'Rachael Shaw', },
-  //   // etc.
-  // ]);
-  // ```
-
-  // Don't forget to trigger `done()` when this bootstrap function's logic is finished.
-  // (otherwise your server will never lift, since it's waiting on the bootstrap)
-  // return done();
-
 };
