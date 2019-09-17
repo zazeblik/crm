@@ -188,7 +188,7 @@ function showTables() {
                 data.splice(data.splice(data.indexOf("users")), 1);
             }
             for (var i = 0; i < data.length; i++) {
-                if (!data[i].includes("_")) {
+                if (!data[i].includes("_") && data[i] != "sumchanges") {
                     var label = toRU(data[i])
                     if (data[i] == "trains") label = window.settings_words.trains
                     $("#tables_list").append('<a id="table_' + data[i] + '" class="dropdown-item" data-model="' + data[i] + '">' + label + '</a>')
