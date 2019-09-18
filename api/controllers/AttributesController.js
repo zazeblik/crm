@@ -661,7 +661,6 @@ module.exports = {
                 if (!group_trains[trains[i].group]) group_trains[trains[i].group] = []; 
                 group_trains[trains[i].group].push(trains[i])
             }
-            
             for (var person_id in once_pays){
                 var person_once_pays = once_pays[person_id]
                 for (var group_id in person_once_pays){
@@ -834,9 +833,8 @@ module.exports = {
                     
                 }
             }
-            
             for (var i=0; i < payments.length; i++){
-                if (payments[k].group == null) continue;
+                if (payments[i].group == null) continue;
                 var payment_group_id = payments[i].group.id
                 if (payments[i].payer){
                     if (groups[payment_group_id].type == "сбор денег"){
