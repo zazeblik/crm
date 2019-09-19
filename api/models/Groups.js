@@ -34,10 +34,6 @@ module.exports = {
     once_sum: {
       type: "number"
     },
-    time: {
-      type: "string",
-      allowNull: true
-    },
     schedule: {
       type: "string",
       allowNull: true

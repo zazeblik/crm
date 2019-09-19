@@ -1,6 +1,6 @@
 var datetimes = ["datetime", "datetime_end", "starts", "ends", "updatedAt", "createdAt"]
 var dates = ["birthday"]
-var times = ["time"]
+var times = ["time", "schedule_1", "schedule_2", "schedule_3", "schedule_4", "schedule_5", "schedule_6", "schedule_7"]
 var trenersChart, membersChart, paysChart;
 var last_collection = []
 var last_models = []
@@ -90,13 +90,13 @@ function showModelTable(model, query) {
                                     to_cell = moment(data[i][fields[j]]).format('DD.MM.YYYY');
                                 } else if (fields[j] == "schedule") {
                                     to_cell = data[i][fields[j]];
-                                    to_cell = to_cell.replace("1", "пн")
-                                    to_cell = to_cell.replace("2", "вт")
-                                    to_cell = to_cell.replace("3", "ср")
-                                    to_cell = to_cell.replace("4", "чт")
-                                    to_cell = to_cell.replace("5", "пт")
-                                    to_cell = to_cell.replace("6", "сб")
-                                    to_cell = to_cell.replace("7", "вс")
+                                    to_cell = to_cell.replace("1 ", "пн ")
+                                    to_cell = to_cell.replace("2 ", "вт ")
+                                    to_cell = to_cell.replace("3 ", "ср ")
+                                    to_cell = to_cell.replace("4 ", "чт ")
+                                    to_cell = to_cell.replace("5 ", "пт ")
+                                    to_cell = to_cell.replace("6 ", "сб ")
+                                    to_cell = to_cell.replace("7 ", "вс ")
                                 } else if (attributes[fields[j]].collection) {
                                     to_cell = data[i][fields[j]].length;
                                 } else if (attributes[fields[j]].type == "boolean") {
@@ -311,16 +311,26 @@ function addModel(from_model, from_values) {
                                                 <div class="input-group-text"><i class="fa fa-clock-o"></i></div>\
                                             </div>\
                                         </div>'
-                                    } else if (prop == "schedule") {
-                                        modal_body += '<select id="prop_' + prop + '" name="' + prop + '"  type="schedule" required="' + data[prop].required + '" multiple="multiple" value="' + valueToInsert + '" class="form-control form-control-sm">'
-                                        modal_body += '<option value="1">Понедельник</option>'
-                                        modal_body += '<option value="2">Вторник</option>'
-                                        modal_body += '<option value="3">Среда</option>'
-                                        modal_body += '<option value="4">Четверг</option>'
-                                        modal_body += '<option value="5">Пятница</option>'
-                                        modal_body += '<option value="6">Суббота</option>'
-                                        modal_body += '<option value="7">Воскресенье</option>'
-                                        modal_body += '</select>'
+                                    } else if (prop == "schedule") { 
+                                        modal_body += '<input id="prop_schedule" name="schedule" class="form-control d-none">'
+                                        for (let i = 1; i <= 7; i++){
+                                            let label;
+                                            if (i == 1) label = 'пн';
+                                            if (i == 2) label = 'вт'
+                                            if (i == 3) label = 'ср'
+                                            if (i == 4) label = 'чт'
+                                            if (i == 5) label = 'пт'
+                                            if (i == 6) label = 'сб'
+                                            if (i == 7) label = 'вс'
+                                            modal_body += `<div class="input-group input-group-sm date" id="datetimepicker_schedule_${i}" data-target-input="nearest">\
+                                                <div class="input-group-prepend">\
+                                                    <span class="input-group-text" id="">${label}</span>\
+                                                    <div class="input-group-text"><input id="schedule_day_${i}" type="checkbox" onchange="scheduleDayChecked(this)"></div>\
+                                                    <div class="input-group-text" data-target="#datetimepicker_schedule_${i}"><i class="fa fa-clock-o"></i></div>\
+                                                </div>\
+                                                <input id="schedule_time_${i}" type="text" class="form-control datetimepicker-input" data-target="#datetimepicker_schedule_${i}" disabled>\
+                                            </div>`;
+                                        }
                                     } else {
                                         modal_body += '<input id="prop_' + prop + '" type="text" name="' + prop + '" required="' + data[prop].required + '" value="' + valueToInsert + '" class="form-control form-control-sm">'
                                     }
@@ -425,7 +435,6 @@ function addModel(from_model, from_values) {
             }
             $("#modal_dialog").modal();
             $("select[type=collection],select[type=models]").multiselect({ buttonWidth: '100%', maxHeight: 200, buttonClass: 'btn btn-sm btn-flat', enableFiltering: true, buttonText: selectButtonText });
-            $("select[type=schedule]").multiselect({ buttonWidth: '100%', buttonClass: 'btn btn-sm btn-flat', buttonText: selectButtonText });
             for (var i = 0; i < datetimes.length; i++) {
                 $('#datetimepicker_' + datetimes[i]).datetimepicker({
                     locale: 'ru'
@@ -493,6 +502,31 @@ function addModel(from_model, from_values) {
     })
 }
 
+function getSchedule(schedule_str){
+    let week_day_times = schedule_str.split(",");
+    let schedule = {};
+    week_day_times.forEach(week_day_time => {
+        let week_day = week_day_time.split(" ")[0];
+        let day_time = week_day_time.split(" ")[1];
+        schedule[week_day] = day_time;
+    })
+    return schedule
+}
+
+function scheduleDayChecked(checkbox){
+    let time_button = $(checkbox).parent().next();
+    let time_input = $(checkbox).parent().parent().next();
+    time_button.removeAttr("data-toggle");
+    time_input.removeAttr("disabled");
+    let checked = $(checkbox).prop("checked");
+    if (checked) {
+        time_button.attr("data-toggle","datetimepicker")
+    } else {
+        time_input.val("");
+        time_input.attr('disabled', 'disabled');
+    }
+}
+
 function showEditModel(id, from_model) {
     if (from_model) {
         addModel(from_model, {});
@@ -521,9 +555,10 @@ function showEditModel(id, from_model) {
                         if (name == "password") {
                             $(el).val(atob(data[name]))
                         } else if (name == "schedule") {
-                            var schedule_arr = data[name].split(",");
-                            for (var i = 0; i < schedule_arr.length; i++) {
-                                $(el).find("option[value=" + schedule_arr[i] + "]").prop("selected", true);
+                            let schedule = getSchedule(data[name]);
+                            for (let prop in schedule){
+                                $(`#schedule_day_${prop}`).attr("checked", true).change();
+                                $(`#schedule_time_${prop}`).val(schedule[prop]);
                             }
                         } else {
                             if (datetimes.includes(name)) {
@@ -536,7 +571,7 @@ function showEditModel(id, from_model) {
                         }
                     }
                 }
-                $("select[type=collection],select[type=models],select[type=schedule]").multiselect('refresh')
+                $("select[type=collection],select[type=models]").multiselect('refresh')
                 $("#modal_title").text(toRU(model) + ": редактирование")
             })
         },
@@ -583,13 +618,20 @@ function saveModel(from_model, cb) {
                 to_post[attr_name] = $(el).prop("checked");
                 return;
             }
+            if (attr_name == "schedule") {
+                let schedule_arr = [];
+                for (let i = 1; i <= 7; i++){
+                    let checked = $(`#schedule_day_${i}`).prop('checked');
+                    let time = $(`#schedule_time_${i}`).val();
+                    if (checked && time) schedule_arr.push(`${i} ${time}`)
+                }
+                
+                to_post[attr_name] = schedule_arr.join(',');
+                return;
+            }
             if ($(el).val()) {
                 if (Array.isArray($(el).val())) {
-                    if (attr_name == "schedule") {
-                        to_post[attr_name] = ($(el).val()).toString();
-                    } else {
-                        to_put[attr_name] = $(el).val();
-                    }
+                    to_put[attr_name] = $(el).val();
                 } else {
                     if (datetimes.includes(attr_name)) {
                         to_post[attr_name] = moment($(el).val(), 'DD.MM.YYYY HH:mm').valueOf();
@@ -641,7 +683,7 @@ function saveModel(from_model, cb) {
             url: "/" + model_name + "/" + id,
             success: function (base_model) {
                 for (var prop in base_model) {
-                    if (Array.isArray(base_model[prop]) && prop != "schedule") {
+                    if (Array.isArray(base_model[prop])) {
                         for (var i = 0; i < base_model[prop].length; i++) {
                             base_model[prop][i] = base_model[prop][i].id
                         }
@@ -660,7 +702,17 @@ function saveModel(from_model, cb) {
                         update_obj[name] = $(el).prop("checked");
                         return;
                     }
-                    if (Array.isArray(base_model[name]) && prop != "schedule") {
+                    if (name == "schedule") {
+                        let schedule_arr = [];
+                        for (let i = 1; i <= 7; i++){
+                            let checked = $(`#schedule_day_${i}`).prop('checked');
+                            let time = $(`#schedule_time_${i}`).val();
+                            if (checked && time) schedule_arr.push(`${i} ${time}`)
+                        }
+                        update_obj[name] = schedule_arr.join(',');
+                        return;
+                    }
+                    if (Array.isArray(base_model[name])) {
                         var val_arr = $(el).val() || [];
                         assocs_add[name] = [];
                         assocs_remove[name] = [];
@@ -680,16 +732,12 @@ function saveModel(from_model, cb) {
                         if (datetimes.includes(name)) {
                             update_obj[name] = moment($(el).val(), 'DD.MM.YYYY HH:mm').valueOf();
                         } else if (dates.includes(name)) {
-                           update_obj[name] = moment($(el).val(), 'DD.MM.YYYY').valueOf();    
+                           update_obj[name] = moment($(el).val(), 'DD.MM.YYYY').valueOf();
                         } else {
-                            if ($(el).attr("name") == "schedule") {
-                                update_obj[name] = ($(el).val()).toString();
-                            } else {
-                                if($(el).attr("type") == "number"){
-                                    update_obj[name] = Number($(el).val());
-                                }else {
-                                    update_obj[name] = $(el).val();
-                                }
+                            if($(el).attr("type") == "number"){
+                                update_obj[name] = Number($(el).val());
+                            }else {
+                                update_obj[name] = $(el).val();
                             }
                         }
                     }
