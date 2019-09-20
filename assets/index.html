@@ -104,7 +104,7 @@
                         <i class="fa fa-trash-o"></i>&nbsp;Удалить</button>
                     <button type="button" class="btn btn-outline-primary btn-sm export_model_btn">
                         <i class="fa fa-file-excel-o"></i>&nbsp;Экспорт</button>
-                    <button type="button" class="btn btn-outline-primary btn-sm import_model_btn">
+                    <button type="button" class="btn btn-outline-primary btn-sm import_model_btn d-none d-lg-inline">
                         <i class="fa fa-file-excel-o"></i>&nbsp;Импорт</button>
                 </div>
                 <input class="form-control" type="text" placeholder="" readonly>
@@ -221,7 +221,7 @@
                     <div class="col-md-3">
                         <strong>Посещений: </strong>
                         <span id="stats_total_visits"></span>
-                    </div> 
+                    </div>
                     <div class="col-md-3">
                         <strong>Платежей: </strong>
                         <span id="stats_total_pays"></span>
@@ -230,7 +230,7 @@
                         <strong>Сумма платежей: </strong>
                         <span id="stats_total_sum"></span>
                     </div>
-                </div>                
+                </div>
             </div>
             <br/>
             <div class="table-responsive" id="report_table">
@@ -349,7 +349,7 @@
                     <div class="col-md-3">
                         <strong>Посещений: </strong>
                         <span id="stats_payments_visits"></span>
-                    </div> 
+                    </div>
                     <div class="col-md-3">
                         <strong>Платежей: </strong>
                         <span id="stats_payments_pays"></span>
@@ -358,7 +358,7 @@
                         <strong>Сумма платежей: </strong>
                         <span id="stats_payments_sum"></span>
                     </div>
-                </div>                
+                </div>
             </div>
             <br/>
             <canvas id="stats_payments_canvas"></canvas>
@@ -407,8 +407,8 @@
                         <button type="button" id="add_train_member_btn" class="btn btn-outline-primary btn-sm" type="button">
                             <i class="fa fa-edit"></i>&nbsp;Редактировать
                         </button>
-                        <span id="train_journal_trener_label" class="input-group-text">Тренер:</span>
-                        <select id="train_trener_select" class="form-control"></select>
+                        <span id="train_journal_trener_label" class="input-group-text d-none d-lg-inline">Тренер:</span>
+                        <select id="train_trener_select" class="form-control d-none d-lg-inline"></select>
                     </div>
                 </div>
                 <ul id="train_members" class="list-group list-group-flush"></ul>
