@@ -984,16 +984,28 @@ function correctDates(id, el, type) {
         } else {
             // trains
             setDateInputValue($(el).val(), cur_group, $("input[name='datetime_end']"), null);
-        }        
+        }
     } catch (error) {
         console.log(error)
     }
 }
 
+function getGroupTime(schedule_str) {
+    if (!schedule_str) return '17:00';
+    var date = new Date();
+    var day = (date).getDay();
+    if (!day) day = 7;
+    day = day.toString();
+    var schedule = getSchedule(schedule_str);
+    if (schedule[day]) return schedule[day];
+    return '17:00';
+}
+
 function setAutoCompleteInputDates(cur_date, cur_group){
     var moment_date;
+    var group_time = getGroupTime(cur_group.schedule)
     if (cur_group) {
-        moment_date = moment(addZeros(cur_date.getDate()) + "." + addZeros(Number(cur_date.getMonth()) + 1) + "." + cur_date.getFullYear() + " " + cur_group.time, 'DD.MM.YYYY HH:mm')
+        moment_date = moment(addZeros(cur_date.getDate()) + "." + addZeros(Number(cur_date.getMonth()) + 1) + "." + cur_date.getFullYear() + " " + group_time, 'DD.MM.YYYY HH:mm')
     } else {
         moment_date = moment("01." + addZeros(Number(cur_date.getMonth()) + 1) + "." + cur_date.getFullYear() + " 00:00", 'DD.MM.YYYY HH:mm');
     }
@@ -1026,7 +1038,7 @@ function autoCompleteDatesAndSum(id, model) {
     try {
         var cur_date = new Date();
         if (model == "trains") {
-            if (cur_group.duration && cur_group.time) {
+            if (cur_group.duration && cur_group.schedule) {
                 if (!$("input[name='datetime']").val() && !$("input[name='datetime_end']").val()) {
                     setAutoCompleteInputDates(cur_date, cur_group);
                 }
@@ -1035,16 +1047,15 @@ function autoCompleteDatesAndSum(id, model) {
             if (cur_group.trener) $("[name=trener]").multiselect('select', cur_group.trener)
             if (cur_group.trener) $("[name=trener]").multiselect('refresh')
         } else if (model == "payments") {
-            
             if (cur_group.type == "индивидуальная") {
                 if ($("#modal_body").attr("data-id")) {
-                    if (cur_group.duration && cur_group.time) {
+                    if (cur_group.duration && cur_group.schedule) {
                         if (!$("input[name='starts']").val() && !$("input[name='ends']").val()) {
                             setAutoCompleteInputDates(cur_date, cur_group);
                         }
                     }
                 } else {
-                    if (cur_group.duration && cur_group.time) {
+                    if (cur_group.duration && cur_group.schedule) {
                         setAutoCompleteInputDates(cur_date, cur_group);
                     }
                 }
@@ -1165,13 +1176,13 @@ function ec(r, c){
 function deleteRow(ws, row_index){
     var variable = XLSX.utils.decode_range(ws["!ref"])
     for(var R = row_index; R < variable.e.r; ++R){
-      for(var C = variable.s.c; C <= variable.e.c; ++C){
-        ws[ec(R,C)] = ws[ec(R+1,C)];
-      }
+        for(var C = variable.s.c; C <= variable.e.c; ++C){
+            ws[ec(R,C)] = ws[ec(R+1,C)];
+        }
     }
     variable.e.r--
     ws['!ref'] = XLSX.utils.encode_range(variable.s, variable.e);
-  }
+}
 
 function exportModel() {
     var wb = XLSX.utils.book_new();
@@ -1310,12 +1321,11 @@ function showTrainsList(group_id, group_label, cur_page) {
                     if (group.duration) $("#group_trains").attr("data-duration", group.duration)
                     if (group.hall) $("#group_trains").attr("data-hall", group.hall)
                     if (group.trener) $("#group_trains").attr("data-trener", group.trener)
-                    if (group.time) {
-                        var cur_date = new Date()
-                        cur_date.setHours((group.time.split(":"))[0])
-                        cur_date.setMinutes((group.time.split(":"))[1])
-                        $("#group_trains").attr("data-datetime", cur_date.getTime())
-                    }
+                    var group_time = getGroupTime(group.schedule)
+                    var cur_date = new Date()
+                    cur_date.setHours((group_time.split(":"))[0])
+                    cur_date.setMinutes((group_time.split(":"))[1])
+                    $("#group_trains").attr("data-datetime", cur_date.getTime())
                     for (var i = 0; i < group.members.length; i++) {
                         in_group.push(group.members[i].id);
                     }
@@ -1939,7 +1949,7 @@ function renderReport() {
                 $.ajax({
                     url: "/groups/" + group_id,
                     data: {
-                        select: "toView,time,duration",
+                        select: "toView,duration",
                         populate: "members"
                     },
                     success: function (group) {
@@ -2044,7 +2054,6 @@ function renderReport() {
                                                         }
                                                     })
                                                 }
-                                                
                                             }
                                             var to_print = []
                                             for (var j = 0; j < abon_trains.length; j++){
@@ -2229,7 +2238,7 @@ function exportReport() {
                 $.ajax({
                     url: "/groups/" + group_id,
                     data: {
-                        select: "toView,time,duration",
+                        select: "toView,duration",
                         populate: "members"
                     },
                     success: function (group) {
