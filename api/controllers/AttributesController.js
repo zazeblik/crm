@@ -54,6 +54,26 @@ function ucFirst(str) {
     if (!str) return str; 
     return str[0].toUpperCase() + str.slice(1);
 }
+
+function compareByNames( a, b ) {
+    if ( a.name < b.name ){
+      return -1;
+    }
+    if ( a.name > b.name ){
+      return 1;
+    }
+    return 0;
+}
+
+function compareByGroupIds( a, b ) {
+    if ( a.group_ids < b.group_ids ){
+      return -1;
+    }
+    if ( a.group_ids > b.group_ids ){
+      return 1;
+    }
+    return 0;
+}
 module.exports = {
     models: function(req, res){
         var data = [];
@@ -112,7 +132,7 @@ module.exports = {
         var attributes = sails.models[(req.param('model')).toLowerCase()].attributes;
         var perPage = req.query.rows;
         var currentPage = req.query.page;
-        var sort = "updatedAt DESC";;
+        var sort = "updatedAt DESC";
         var conditions = {};
         if (req.query.sort)  {
             sort = req.query.sort 
@@ -176,15 +196,28 @@ module.exports = {
                 query.skip = (currentPage - 1)*perPage;
                 if (req.query.populate) {
                     var populates = req.query.populate.split(",");
+                    
                     var find_str = 'model.find(query)';
                     for (var i = 0; i < populates.length; i++){
                         find_str += '.populate("'+populates[i]+'")'
+                    }
+                    if (req.param('model') == "persons" && sort == "updatedAt DESC"){
+                        find_str += '.populate("groups")'
                     }
                     (eval(find_str)).exec(function(err, data){
                         if (err) {
                             console.log("find error");
                             return res.status(400).send(err);
                         } else {
+                            if (req.param('model') == "persons" && sort == "updatedAt DESC"){
+                                for(let i = 0; i < data.length; i++){
+                                    data[i].group_ids = (_.pluck(data[i].groups,"toView")).toString();
+                                    delete data[i].groups;
+                                }
+                                data = data.sort(compareByNames)
+                                data = data.sort(compareByGroupIds)
+                            }
+                            
                             return res.send({total: total, total_pages: total_pages, data: data, perPage: perPage, page: currentPage});
                         }
                     })
