@@ -1242,6 +1242,22 @@ function showTrains() {
     showTrainsList(group_id, group_label)
 }
 
+function showLastTrainsList(){
+    let group_id = $("#train_members").attr("data-group")
+    $.ajax({
+        url: "/groups/" + group_id,
+        data: {
+            populate: "updater"
+        },
+        success: function (group) {
+            showTrainsList(group_id, group.label)
+        },
+        error: function (err) {
+            handleError(err);
+        }
+    });    
+}
+
 function showTrainsList(group_id, group_label, cur_page) {
     var page = cur_page || 1;
     $("#trains_title").text(window.settings_words["trains"]+" группы " + group_label)
@@ -2767,6 +2783,8 @@ function createHandlers() {
     $(".import_model_btn").on("click", importModel)
     $("#fileInput").on("change", changeFileInput);
     $("#journals_menu_item").on("click", showJournals)
+    $("#back_to_groups_btn").on("click", showJournals)
+    $("#back_to_trains_btn").on("click", showLastTrainsList)
     $("#show_group_train_btn").on("click", showAddTrainDatepicker)
     $("#reports_menu_item").on("click", showReports)
     $("#debts_menu_item").on("click", showDebts)
