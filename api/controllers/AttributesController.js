@@ -997,7 +997,11 @@ module.exports = {
                 }
                 result[person_name]["Всего"] = total_visits
             }
-            return res.send(result);
+            let ordered = {}
+            Object.keys(result).sort().forEach(function(key) {
+                ordered[key] = result[key];
+            });
+            return res.send(ordered);
         } catch (error) {
             console.log(error)
             return res.status(400).send(error)
