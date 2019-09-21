@@ -1414,6 +1414,15 @@ function birthDateToAge(birthDate) {
     return now.setFullYear(1972) < birthDate.setFullYear(1972) ? age - 1 : age;
 }
 
+function compareByName( a, b ) {
+    if ( a.name < b.name ){
+      return -1;
+    }
+    if ( a.name > b.name ){
+      return 1;
+    }
+    return 0;
+}
 
 function updateShowTrain(train_id, group_id, trener_id, train_name) {
     $("#train_journal_title").text(window.settings_words["train"]+": " + train_name)
@@ -1431,6 +1440,7 @@ function updateShowTrain(train_id, group_id, trener_id, train_name) {
         },
         success: function (group) {
             var in_group = [];
+            group.members = group.members.sort(compareByName); 
             for (var i = 0; i < group.members.length; i++) {
                 in_group.push(group.members[i].id)
                 $("#train_members").append(
