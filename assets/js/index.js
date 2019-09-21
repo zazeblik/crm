@@ -1935,226 +1935,96 @@ function showStatsPayments() {
     renderStatsPayments()
 }
 
-function renderReport() {
-    var group_id = $("#report_group_select").val()
-    if (group_id) {
-        var month = $("#report_months_select").val()
-        var year = $("#report_year_input").val()
-        var month_date = new Date(year, month);
-        var next_month_date = new Date(year, month);
-        next_month_date.setMonth(next_month_date.getMonth() + 1);
-        $("#stats_total_trains").text("");
-        $("#stats_total_visits").text("");
-        $("#stats_total_pays").text("");
-        $("#stats_total_sum").text("");
-        $.ajax({
-            url: "/attributes/total",
-            data: {
-                group: group_id,
-                start: month_date.getTime(),
-                end: next_month_date.getTime()
-            },
-            success: function (data) {
-                $("#stats_total_trains").text(data.trains);
-                $("#stats_total_visits").text(data.visits);
-                $("#stats_total_pays").text(data.pays);
-                $("#stats_total_sum").text(data.sum);
-            },
-            error: function (err) {
-                handleError(err)
+function setVisitsTableHeader(visits){
+    let uniqueTrainNames = [];
+    for (const name in visits) {
+        let person_trains = visits[name]
+        for (const train_str_date in person_trains) {
+            if (!uniqueTrainNames.includes(train_str_date)){
+                uniqueTrainNames.push(train_str_date)
             }
-        })
-        $("#report_table_head").empty();
-        $("#report_table_body").empty();
-        $.ajax({
-            url: "/trains",
-            data: {
-                sort: "datetime ASC",
-                select: "datetime,datetime_end",
-                populate: "members",
-                where: JSON.stringify({ group: group_id, datetime: { ">=": month_date.getTime(), "<": next_month_date.getTime() } })
-            },
-            success: function (trains) {
-                $("#report_table_head").append('<th>Фамилия Имя</th>');
-                var date;
-                for (var i = 0; i < trains.length; i++) {
-                    date = new Date(trains[i].datetime).getDate();
-                    $("#report_table_head").append('<th scope="col" data-date=' + date + '>' + addZeros(date) + '</th>');
-                }
-                $("#report_table_head").append('<th>Всего</th>');
-                $.ajax({
-                    url: "/groups/" + group_id,
-                    data: {
-                        select: "toView,duration",
-                        populate: "members"
-                    },
-                    success: function (group) {
-                        var in_group_ids = [];
-                        for (var k = 0; k < group.members.length; k++) {
-                            in_group_ids.push(group.members[k].id)
-                        }
-                        $.ajax({
-                            url: "/persons",
-                            data: {
-                                sort: "name ASC",
-                                where: JSON.stringify({ id: { in: in_group_ids } })
-                            },
-                            success: function (persons) {
-                                for (var i = 0; i < persons.length; i++) {
-                                    $("#report_table_body").append("<tr data-person='" + persons[i].id + "'></tr>")
-                                    $("#report_table_body tr[data-person='" + persons[i].id + "']").append("<th scope='row'>" + (i + 1) + ". " + persons[i].name + "</th>")
-                                    var sum = 0;
-                                    date = 0;
-                                    for (var j = 0; j < trains.length; j++) {
-                                        date = new Date(trains[j].datetime).getDate();
-                                        var finded = false;
-                                        for (var n = 0; n < trains[j].members.length; n++) {
-                                            if (trains[j].members[n].id == persons[i].id) {
-                                                finded = true;
-                                                sum++
-                                            }
-                                        }
-                                        if (finded) {
-                                            $("#report_table_body tr[data-person='" + persons[i].id + "']").append("<td data-id=" + trains[j].id + " data-datetime='"+trains[j].datetime+"' data-date='" + date + "'>+</td>")
-                                        } else {
-                                            $("#report_table_body tr[data-person='" + persons[i].id + "']").append("<td data-id=" + trains[j].id + " data-datetime='"+trains[j].datetime+"' data-date='" + date + "'>н</td>")
-                                        }
-                                    }
-                                    $("#report_table_body tr[data-person='" + persons[i].id + "']").append("<td>" + sum + "</td>")
-                                }
-                                $.ajax({
-                                    url: "/payments/for_report",
-                                    data: {
-                                        group: group_id,
-                                        start: month_date.getTime(),
-                                        end: next_month_date.getTime()
-                                    },
-                                    success: function (payments) {
-                                        for (var i = 0; i < payments.length; i++) {
-                                            var tmp = 0
-                                            var abon_trains = [];
-                                            $("#report_table_body tr[data-person='" + payments[i].payer + "'] td[data-date]").each(function (index, el) {
-                                                for (var j = 0; j < trains.length; j++) {
-                                                    if ($(el).attr("data-id") == trains[j].id) {
-                                                        var train_start = trains[j].datetime
-                                                        var train_end = trains[j].datetime_end
-                                                        if (payments[i].type == "абонемент"){
-                                                            if ((train_start >= payments[i].starts) && (train_end <= payments[i].ends) && $(el).text() == "+") {
-                                                                abon_trains.push(el)
-                                                            }
-                                                        } else {
-                                                            if ((train_start >= payments[i].starts) && (train_end <= payments[i].ends)) {
-                                                                $(el).addClass("bg-success")
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            })
-                                            if (abon_trains.length){
-                                                if (payments[i].group.id != group_id){
-                                                    var other_group_id = payments[i].group.id
-                                                    $.ajax({
-                                                        url: "/trains",
-                                                        async: false,
-                                                        data: {
-                                                            sort: "datetime ASC",
-                                                            select: "datetime,datetime_end",
-                                                            populate: "members",
-                                                            where: JSON.stringify({ group: other_group_id, datetime: { ">=": payments[i].starts, "<": payments[i].ends } })
-                                                        },
-                                                        success: function (other_trains) {
-                                                            var other = [];
-                                                            var abon_start_datetimes = [];
-                                                            for (var j = 0; j < other_trains.length; j++){
-                                                                for (var n = 0; n < other_trains[j].members.length; n++) {
-                                                                    if (other_trains[j].members[n].id == payments[i].payer) {
-                                                                        other.push(other_trains[j])
-                                                                        abon_start_datetimes.push(other_trains[j].datetime)
-                                                                    }
-                                                                }
-                                                            }
-                                                            for (var j = 0; j < abon_trains.length; j++){
-                                                                abon_start_datetimes.push(Number($(abon_trains[j]).attr("data-datetime")))
-                                                            }
-                                                            abon_start_datetimes.sort();
-                                                            if (abon_start_datetimes.length > payments[i].count) {
-                                                                abon_start_datetimes = abon_start_datetimes.slice(0, payments[i].count);
-                                                            }
-                                                            var delta = 0;
-                                                            for (var j = 0; j < abon_trains.length; j++){
-                                                                if (abon_start_datetimes.includes(Number($(abon_trains[j]).attr("data-datetime")))) {
-                                                                    delta++
-                                                                }
-                                                            }
-                                                            payments[i].count = delta
-                                                        }
-                                                    })
-                                                }
-                                            }
-                                            var to_print = []
-                                            for (var j = 0; j < abon_trains.length; j++){
-                                                if (tmp < payments[i].count){
-                                                    to_print.push(abon_trains[j])
-                                                    tmp++;
-                                                }
-                                            }
-                                            if (to_print.length){
-                                                (function(to_print){
-                                                    $.ajax({
-                                                        url: "/attributes/debt_dates",
-                                                        data: {
-                                                            payer: payments[i].payer,
-                                                            group: group_id
-                                                        },
-                                                        success:function(dates){
-                                                            for (var j = to_print.length - 1; j >= 0; j--){
-                                                                for (var k=0; k < dates.length; k++){
-                                                                    if (dates[k].train == $(to_print[j]).attr('data-id')){
-                                                                        to_print.splice(j,1)
-                                                                    }
-                                                                }
-                                                            }
-                                                            for (let j = 0; j < to_print.length; j++) {
-                                                                $(to_print[j]).addClass("bg-success")
-                                                            }
-                                                        },
-                                                        error: function(err){
-                                                            handleError(err)
-                                                        }
-                                                    });
-                                                })(to_print)
-                                            }
-                                            for (var j = 0; j < abon_trains.length; j++){
-                                                if (tmp < payments[i].count){
-                                                    to_print.push(abon_trains[j])
-                                                    tmp++
-                                                }
-                                            }
-                                        }
-                                    },
-                                    error: function (err) {
-                                        handleError(err)
-                                    }
-                                });
-                            },
-                            error: function (err) {
-                                handleError(err)
-                            }
-                        })
-                    },
-                    error: function (err) {
-                        handleError(err)
-                    }
-                })
-            },
-            error: function (err) {
-                handleError(err)
-            }
-        })
+        }
     }
+    uniqueTrainNames.splice(uniqueTrainNames.indexOf("Всего"), 1);
+    uniqueTrainNames.push("Всего")
+
+    $("#report_table_head").append("<th>Фамилия Имя</th>")
+    for (let i = 0; i < uniqueTrainNames.length; i++) {
+        let name = uniqueTrainNames[i];
+        let date_to_set = name == "Всего" ? name : addZeros(new Date(Number(name)).getDate())
+        $("#report_table_head").append(`<th>${date_to_set}</th>`)
+    }
+    return uniqueTrainNames
 }
 
-function setTableHeader(debts){
+function renderReport() {
+    var group_id = $("#report_group_select").val()
+    if (!group_id) return;
+    var month = $("#report_months_select").val()
+    var year = $("#report_year_input").val()
+    var month_date = new Date(year, month);
+    var next_month_date = new Date(year, month);
+    next_month_date.setMonth(next_month_date.getMonth() + 1);
+    $("#stats_total_trains").text("");
+    $("#stats_total_visits").text("");
+    $("#stats_total_pays").text("");
+    $("#stats_total_sum").text("");
+    $.ajax({
+        url: "/attributes/total",
+        data: {
+            group: group_id,
+            start: month_date.getTime(),
+            end: next_month_date.getTime()
+        },
+        success: function (data) {
+            $("#stats_total_trains").text(data.trains);
+            $("#stats_total_visits").text(data.visits);
+            $("#stats_total_pays").text(data.pays);
+            $("#stats_total_sum").text(data.sum);
+        },
+        error: function (err) {
+            handleError(err)
+        }
+    })
+    $("#report_table_head").empty();
+    $("#report_table_body").empty();
+
+    $.ajax({
+        url: '/attributes/get_visits',
+        data: {
+            group_id: group_id,
+            start: month_date.getTime(),
+            end: next_month_date.getTime()
+        },
+        success: function (data) {
+            let train_names = setVisitsTableHeader(data)
+            let count = 0;
+            for (var person in data) {
+                count++
+                let row = "<tr>";
+                row += `<th class="text-left">${count}. ${person}</th>`
+                for (let i = 0; i < train_names.length; i++) {
+                    const train_name = train_names[i];
+                    if (train_name == "Всего"){
+                        row += `<td>${data[person][train_name]}</td>`
+                    } else {
+                        let isVisit = data[person][train_name].visit; 
+                        let isPayment = data[person][train_name].payment; 
+                        row += `<td class="${isPayment ? 'bg-success' : ''}">${isVisit ? '+' : 'н'}</td>`
+                    }
+                    
+                }
+                row += "</tr>"
+                $("#report_table_body").append(row);
+            }
+        },
+        error: function (err) {
+            handleError(err)
+        }
+    })
+}
+
+function setDebtsTableHeader(debts){
     let uniqueGroupNames = [];
     for (const name in debts) {
         let person_groups = debts[name]
@@ -2192,7 +2062,7 @@ function updateDebtsTable(option, checked, select) {
     $.ajax({
         url: "/attributes/debts?groups="+groups.map((g)=>g.id),
         success: function (data) {
-            let group_names = setTableHeader(data)
+            let group_names = setDebtsTableHeader(data)
             for (var person in data) {
                 let row = "<tr>";
                 row += `<th>${person}</th>`
@@ -2211,6 +2081,8 @@ function updateDebtsTable(option, checked, select) {
 }
 
 function renderDebts() {
+    $("#debts_table_head").empty();
+    $("#debts_table_body").empty();
     $.ajax({
         url: "/attributes/names?model=groups",
         success: function(groups){
@@ -2228,62 +2100,6 @@ function renderDebts() {
             });
             $("#debts_groups").multiselect('dataprovider', options);
         },
-        // success: function (groups) {
-        //     $("#debts_table_head").append('<th>Фамилия Имя</th>');
-        //     $("#debts_table_filters").append('<th><input type="text" id="debt_filter" class="form-control form-control-sm" value="' + search + '"/></th>');
-        //     setElementEvent($("#debt_filter"), "change", renderDebts)
-        //     for (var i = 0; i < groups.length; i++) {
-        //         $("#debts_table_head").append('<th scope="col" data-group=' + groups[i].id + '>' + groups[i].toView + '</th>');
-        //         $("#debts_table_filters").append('<th></th>')
-        //     }
-        //     $("#debts_table_head").append('<th>Долг</th>');
-        //     $("#debts_table_filters").append('<th></th>');
-        //     $("#debts_table_head").append('<th>Всего</th>');
-        //     $("#debts_table_filters").append('<th></th>');
-        //     var finders = {
-        //         select: "toView,debt",
-        //         populate: "updater",
-        //         sort: "name ASC"
-        //     }
-        //     if (search) finders.where = JSON.stringify({ toView: { contains: search } })
-        //     $.ajax({
-        //         url: "/persons",
-        //         data: finders,
-        //         success: function (persons) {
-        //             for (var i = 0; i < persons.length; i++) {
-        //                 $("#debts_table_body").append("<tr data-person='" + persons[i].id + "'></tr>")
-        //                 $("#debts_table_body tr[data-person='" + persons[i].id + "']").append("<th scope='row'>" + (i + 1) + ". " + persons[i].toView + "</th>")
-        //                 for (var j = 0; j < groups.length; j++) {
-        //                     $("#debts_table_body tr[data-person='" + persons[i].id + "']").append("<td data-group='" + groups[j].toView + "' data-person='" + persons[i].toView + "'>0</td>")
-        //                 }
-        //                 $("#debts_table_body tr[data-person='" + persons[i].id + "']").append("<td data-debt='" + persons[i].toView + "'>"+(persons[i].debt || 0)+"</td>")
-        //                 $("#debts_table_body tr[data-person='" + persons[i].id + "']").append("<td data-total='" + persons[i].toView + "'>"+(persons[i].debt || 0)+"</td>")
-        //             }
-        //             $.ajax({
-        //                 url: "/attributes/debts",
-        //                 success: function (data) {
-        //                     for (var person in data) {
-        //                         var sum = 0
-        //                         for (var group in data[person]) {
-        //                             $("td[data-group='" + group + "'][data-person='" + person + "']").text(data[person][group])
-        //                             sum += data[person][group]
-        //                         }
-        //                         for (var i = 0; i < persons.length; i++) {
-        //                             if (persons[i].toView == person && persons[i].debt) sum += persons[i].debt
-        //                         }
-        //                         $("td[data-total='" + person + "']").text(sum)
-        //                     }
-        //                 },
-        //                 error: function (err) {
-        //                     handleError(err)
-        //                 }
-        //             })
-        //         },
-        //         error: function (err) {
-        //             handleError(err)
-        //         }
-        //     })
-        // },
         error: function (err) {
             handleError(err)
         }

@@ -734,18 +734,17 @@ module.exports = {
                 var person_abon_pays = abon_pays[person_id]
                 for (var group_id in person_abon_pays){
                     for (var i = 0; i < person_abon_pays[group_id].length; i++){
-                        if (person_abon_pays[group_id][i].count){
-                            var months_start = new Date(person_abon_pays[group_id][i].starts).getMonth()
-                            var months_end = new Date(person_abon_pays[group_id][i].ends)
-                            months_end.setSeconds(months_end.getSeconds()-1)
-                            months_end = months_end.getMonth()
-                            for (var j=group_dates[person_id][group_id].length-1; j >= 0; j--){
-                                
-                                var start_month = new Date(group_dates[person_id][group_id][j].datetime).getMonth() 
-                                var end_month = new Date(group_dates[person_id][group_id][j].datetime_end).getMonth() 
-                                if ((start_month >= months_start && start_month <= months_end)||(end_month >= months_start && end_month <= months_end)){
-                                    group_dates[person_id][group_id].splice(j,1)
-                                }
+                        if (!person_abon_pays[group_id][i].count) continue;
+                        var months_start = new Date(person_abon_pays[group_id][i].starts).getMonth()
+                        var months_end = new Date(person_abon_pays[group_id][i].ends)
+                        months_end.setSeconds(months_end.getSeconds()-1)
+                        months_end = months_end.getMonth()
+                        for (var j=group_dates[person_id][group_id].length-1; j >= 0; j--){
+                            
+                            var start_month = new Date(group_dates[person_id][group_id][j].datetime).getMonth() 
+                            var end_month = new Date(group_dates[person_id][group_id][j].datetime_end).getMonth() 
+                            if ((start_month >= months_start && start_month <= months_end)||(end_month >= months_start && end_month <= months_end)){
+                                group_dates[person_id][group_id].splice(j,1)
                             }
                         }
                     }
@@ -802,13 +801,12 @@ module.exports = {
             }
             for (var person_id in once_trains){
                 for (var group_id in once_trains[person_id]){
-                    if (groups[group_id].once_sum){
-                        if (!group_dates[person_id]) group_dates[person_id] = {}
-                        if (!group_dates[person_id][group_id]) group_dates[person_id][group_id] = []
-                        for (var i = 0; i < once_trains[person_id][group_id].length; i++){
-                            group_dates[person_id][group_id].push(once_trains[person_id][group_id][i]);
-                        }
-                    }                    
+                    if (!groups[group_id].once_sum) continue;
+                    if (!group_dates[person_id]) group_dates[person_id] = {}
+                    if (!group_dates[person_id][group_id]) group_dates[person_id][group_id] = []
+                    for (var i = 0; i < once_trains[person_id][group_id].length; i++){
+                        group_dates[person_id][group_id].push(once_trains[person_id][group_id][i]);
+                    }                 
                 }
             }
             for (var group_id in groups){
@@ -818,53 +816,45 @@ module.exports = {
                     if (!result[group_members[i].id]) result[group_members[i].id] = {} 
                     if (!persons[group_members[i].id]) persons[group_members[i].id] = group_members[i].toView;
                     result[group_members[i].id][group_id] = 0
-                    if (groups[group_id].sum){
-                        if (groups[group_id].type == "групповая"){
-                            if (group_dates[group_members[i].id] && group_dates[group_members[i].id][group_id] && groups[group_id].sum) {
-                                result[group_members[i].id][group_id] = group_dates[group_members[i].id][group_id].length * groups[group_id].sum 
-                                if (once_trains[group_members[i].id] && once_trains[group_members[i].id][group_id] && once_trains[group_members[i].id][group_id].length && groups[group_id].once_sum) {
-                                    result[group_members[i].id][group_id] -= once_trains[group_members[i].id][group_id].length * groups[group_id].sum
-                                    result[group_members[i].id][group_id] += once_trains[group_members[i].id][group_id].length * groups[group_id].once_sum
-                                }
-                                for (var j=0; j<group_dates[group_members[i].id][group_id].length; j++){
-                                    if (!group_dates[group_members[i].id][group_id][j].once){
-                                        var finded = false;
-                                        for (var k=0; k<group_trains[group_id].length; k++){
-                                            if ((group_trains[group_id][k].datetime >= group_dates[group_members[i].id][group_id][j].datetime) && (group_trains[group_id][k].datetime_end <= group_dates[group_members[i].id][group_id][j].datetime_end)){
-                                                for (var m=0; m < group_trains[group_id][k].members.length; m++){
-                                                    if (group_trains[group_id][k].members[m].id == group_members[i].id) finded = true 
-                                                }
-                                            }
-                                        }
-                                        if (!finded) result[group_members[i].id][group_id] -= groups[group_id].sum
-                                    }                                    
-                                }
-                            }  
+                    if (!groups[group_id].sum) continue;
+                    if (groups[group_id].type == "групповая" && group_dates[group_members[i].id] && group_dates[group_members[i].id][group_id] && groups[group_id].sum){
+                        result[group_members[i].id][group_id] = group_dates[group_members[i].id][group_id].length * groups[group_id].sum 
+                        if (once_trains[group_members[i].id] && once_trains[group_members[i].id][group_id] && once_trains[group_members[i].id][group_id].length && groups[group_id].once_sum) {
+                            result[group_members[i].id][group_id] -= once_trains[group_members[i].id][group_id].length * groups[group_id].sum
+                            result[group_members[i].id][group_id] += once_trains[group_members[i].id][group_id].length * groups[group_id].once_sum
                         }
-                        if (groups[group_id].type == "сбор денег"){
-                            result[group_members[i].id][group_id] = groups[group_id].sum;
-                        }
-                        if (groups[group_id].type == "индивидуальная"){
-                            if (personal_dates[group_members[i].id] && personal_dates[group_members[i].id][group_id] && groups[group_id].sum) {
-                                result[group_members[i].id][group_id] = personal_dates[group_members[i].id][group_id].length * groups[group_id].sum;            
-                            }                            
-                        }
-                        if (groups[group_id].type == "сборы"){
-                            if (sbor_dates[group_id] && groups[group_id].sum) {
-                                result[group_members[i].id][group_id] = groups[group_id].sum
+                        for (var j=0; j<group_dates[group_members[i].id][group_id].length; j++){
+                            if (!group_dates[group_members[i].id][group_id][j].once){
                                 var finded = false;
                                 for (var k=0; k<group_trains[group_id].length; k++){
-                                    if ((group_trains[group_id][k].datetime >= sbor_dates[group_id].starts) && (group_trains[group_id][k].datetime_end <= sbor_dates[group_id].ends)){
+                                    if ((group_trains[group_id][k].datetime >= group_dates[group_members[i].id][group_id][j].datetime) && (group_trains[group_id][k].datetime_end <= group_dates[group_members[i].id][group_id][j].datetime_end)){
                                         for (var m=0; m < group_trains[group_id][k].members.length; m++){
                                             if (group_trains[group_id][k].members[m].id == group_members[i].id) finded = true 
                                         }
                                     }
                                 }
                                 if (!finded) result[group_members[i].id][group_id] -= groups[group_id].sum
-                            }                             
-                        }
+                            }                                    
+                        }  
                     }
-                    
+                    if (groups[group_id].type == "сбор денег"){
+                        result[group_members[i].id][group_id] = groups[group_id].sum;
+                    }
+                    if (groups[group_id].type == "индивидуальная" && personal_dates[group_members[i].id] && personal_dates[group_members[i].id][group_id] && groups[group_id].sum){
+                        result[group_members[i].id][group_id] = personal_dates[group_members[i].id][group_id].length * groups[group_id].sum;                         
+                    }
+                    if (groups[group_id].type == "сборы" && sbor_dates[group_id] && groups[group_id].sum){
+                        result[group_members[i].id][group_id] = groups[group_id].sum
+                        var finded = false;
+                        for (var k=0; k<group_trains[group_id].length; k++){
+                            if ((group_trains[group_id][k].datetime >= sbor_dates[group_id].starts) && (group_trains[group_id][k].datetime_end <= sbor_dates[group_id].ends)){
+                                for (var m=0; m < group_trains[group_id][k].members.length; m++){
+                                    if (group_trains[group_id][k].members[m].id == group_members[i].id) finded = true 
+                                }
+                            }
+                        }
+                        if (!finded) result[group_members[i].id][group_id] -= groups[group_id].sum                          
+                    }
                 }
             }
             for (var i=0; i < payments.length; i++){
@@ -934,7 +924,9 @@ module.exports = {
                     toSheet[persons[person_id]][group_names[group_id]] = group_sum
                     person_total += group_sum
                 }
-                toSheet[persons[person_id]]["Долг"] = persons[person_id].debt
+                if (Number(persons[person_id].debt)){
+                    toSheet[persons[person_id]]["Долг"] = Number(persons[person_id].debt)    
+                }
                 toSheet[persons[person_id]]["Всего"] = person_total
             }
             let ordered = {}
@@ -971,5 +963,73 @@ module.exports = {
                 return res.ok();
             });
         });
+    },
+    get_visits: async function(req, res){
+        try {
+            let group_id = req.param("group_id");
+            let start = Number(req.param("start"));
+            let end = Number(req.param("end"));
+
+            if (!group_id || !start || !end) return res.status(400).send("group_id, start and end is required")
+            let trains = await Trains.find({ group: group_id, datetime: { ">=": start, "<": end } }).sort("datetime ASC").populate("members")
+            let group = await Groups.findOne(group_id).populate("members")
+            let group_members = group.members;
+            let pays = await Payments.find({ where: { group: group_id, or: [{ starts: { "<": end } }, { ends: { ">=": start } }] } }).sort("starts ASC")
+            let result = {}
+            for (let i = 0; i < group_members.length; i++) {
+                const person = group_members[i];
+                let person_name = person.toView; 
+                let person_id = person.id; 
+                let person_pays = pays.filter((p) => p.payer == person_id )
+                result[person_name] = {}
+                let total_visits = 0
+                for (let j = 0; j < trains.length; j++) {
+                    const train = trains[j];
+                    let train_memebers = train.members
+                    let train_memebers_ids = train_memebers.map((tm)=>tm.id)
+                    let train_start = train.datetime;
+                    let is_visit = train_memebers_ids.includes(person_id)
+                    if (is_visit) total_visits++;
+                    result[person_name][train_start] = {
+                        visit: is_visit,
+                        payment: await getPaymentStatus( train, person, person_pays)
+                    };
+                }
+                result[person_name]["Всего"] = total_visits
+            }
+            return res.send(result);
+        } catch (error) {
+            console.log(error)
+            return res.status(400).send(error)
+        }
     }
+}
+
+async function getPaymentStatus( current_train, person, pays){
+    if (!pays.length) return false;
+
+    let train_start = current_train.datetime;
+    let train_end = current_train.datetime_end;
+    
+    for (let i = 0; i < pays.length; i++) {
+        const pay = pays[i];
+        let train_in_pay = (train_start >= pay.starts) && (train_end <= pay.ends)
+        if (!train_in_pay) continue;
+        if (pay.type != "абонемент") return true;
+        if (!pay.count) return true;
+
+        let trains = await Trains.find({ group: current_train.group, datetime: { ">=": pay.starts, "<": pay.ends } }).sort("datetime ASC").populate("members")
+        let abon_trains = []
+        trains.forEach(train => {
+            let train_memebers = train.members
+            let train_memebers_ids = train_memebers.map((tm)=>tm.id)
+            let is_visit = train_memebers_ids.includes(person.id)
+            let train_in_pay = (train.start >= pay.starts) && (train.end <= pay.ends)
+            if (train_in_pay && is_visit) {
+                abon_trains.push(train.id)
+            }
+        });
+        return pay.count > abon_trains.indexOf(current_train.id) + 1;
+    }
+    return false
 }
