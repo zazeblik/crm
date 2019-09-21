@@ -975,6 +975,10 @@ module.exports = {
             let group = await Groups.findOne(group_id).populate("members")
             let group_members = group.members;
             let pays = await Payments.find({ where: { group: group_id, or: [{ starts: { "<": end } }, { ends: { ">=": start } }] } }).sort("starts ASC")
+            let pays_min_starts = Math.min(...pays.map(p => p.starts));
+            let pays_max_ends = Math.max(...pays.map(p => p.ends));
+            let in_pays_trains = await Trains.find({ group: group_id, datetime: { ">=": pays_min_starts, "<": pays_max_ends } }).sort("datetime ASC").populate("members")
+            
             let result = {}
             for (let i = 0; i < group_members.length; i++) {
                 const person = group_members[i];
@@ -992,7 +996,7 @@ module.exports = {
                     if (is_visit) total_visits++;
                     result[person_name][train_start] = {
                         visit: is_visit,
-                        payment: await getPaymentStatus( train, person, person_pays)
+                        payment: getPaymentStatus( train, person, person_pays, in_pays_trains)
                     };
                 }
                 result[person_name]["Всего"] = total_visits
@@ -1009,7 +1013,7 @@ module.exports = {
     }
 }
 
-async function getPaymentStatus( current_train, person, pays){
+function getPaymentStatus( current_train, person, pays, trains){
     if (!pays.length) return false;
 
     let train_start = current_train.datetime;
@@ -1022,7 +1026,6 @@ async function getPaymentStatus( current_train, person, pays){
         if (pay.type != "абонемент") return true;
         if (!pay.count) return true;
 
-        let trains = await Trains.find({ group: current_train.group, datetime: { ">=": pay.starts, "<": pay.ends } }).sort("datetime ASC").populate("members")
         let abon_trains = []
         trains.forEach(train => {
             let train_memebers = train.members
