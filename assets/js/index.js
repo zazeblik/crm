@@ -2154,71 +2154,136 @@ function renderReport() {
     }
 }
 
-function renderDebts() {
-    var search = "";
-    if ($('#debt_filter').length && $('#debt_filter').val()) search = $('#debt_filter').val();
+function setTableHeader(debts){
+    let uniqueGroupNames = [];
+    for (const name in debts) {
+        let person_groups = debts[name]
+        for (const group in person_groups) {
+            if (!uniqueGroupNames.includes(group)){
+                uniqueGroupNames.push(group)
+            }
+        }
+    }
+    uniqueGroupNames.splice(uniqueGroupNames.indexOf("Долг"), 1);
+    uniqueGroupNames.push("Долг")
+    uniqueGroupNames.splice(uniqueGroupNames.indexOf("Всего"), 1);
+    uniqueGroupNames.push("Всего")
+
+    $("#debts_table_head").append("<th>Фамилия Имя</th>")
+    for (let i = 0; i < uniqueGroupNames.length; i++) {
+        $("#debts_table_head").append(`<th>${uniqueGroupNames[i]}</th>`)
+    }
+    return uniqueGroupNames
+}
+
+function updateDebtsTable(option, checked, select) {
     $("#debts_table_head").empty();
-    $("#debts_table_filters").empty();
     $("#debts_table_body").empty();
+    
+    let groups = $("#debts_groups option:selected").map(function (){ 
+        return {
+            toView: $(this).text(),
+            id: $(this).val()
+        }
+    }).get()
+    
+    if (!groups.length) return;
 
     $.ajax({
-        url: "/attributes/names?model=groups",
-        success: function (groups) {
-            $("#debts_table_head").append('<th>Фамилия Имя</th>');
-            $("#debts_table_filters").append('<th><input type="text" id="debt_filter" class="form-control form-control-sm" value="' + search + '"/></th>');
-            setElementEvent($("#debt_filter"), "change", renderDebts)
-            for (var i = 0; i < groups.length; i++) {
-                $("#debts_table_head").append('<th scope="col" data-group=' + groups[i].id + '>' + groups[i].toView + '</th>');
-                $("#debts_table_filters").append('<th></th>')
-            }
-            $("#debts_table_head").append('<th>Долг</th>');
-            $("#debts_table_filters").append('<th></th>');
-            $("#debts_table_head").append('<th>Всего</th>');
-            $("#debts_table_filters").append('<th></th>');
-            var finders = {
-                select: "toView,debt",
-                populate: "updater",
-                sort: "name ASC"
-            }
-            if (search) finders.where = JSON.stringify({ toView: { contains: search } })
-            $.ajax({
-                url: "/persons",
-                data: finders,
-                success: function (persons) {
-                    for (var i = 0; i < persons.length; i++) {
-                        $("#debts_table_body").append("<tr data-person='" + persons[i].id + "'></tr>")
-                        $("#debts_table_body tr[data-person='" + persons[i].id + "']").append("<th scope='row'>" + (i + 1) + ". " + persons[i].toView + "</th>")
-                        for (var j = 0; j < groups.length; j++) {
-                            $("#debts_table_body tr[data-person='" + persons[i].id + "']").append("<td data-group='" + groups[j].toView + "' data-person='" + persons[i].toView + "'>0</td>")
-                        }
-                        $("#debts_table_body tr[data-person='" + persons[i].id + "']").append("<td data-debt='" + persons[i].toView + "'>"+(persons[i].debt || 0)+"</td>")
-                        $("#debts_table_body tr[data-person='" + persons[i].id + "']").append("<td data-total='" + persons[i].toView + "'>"+(persons[i].debt || 0)+"</td>")
-                    }
-                    $.ajax({
-                        url: "/attributes/debts",
-                        success: function (data) {
-                            for (var person in data) {
-                                var sum = 0
-                                for (var group in data[person]) {
-                                    $("td[data-group='" + group + "'][data-person='" + person + "']").text(data[person][group])
-                                    sum += data[person][group]
-                                }
-                                for (var i = 0; i < persons.length; i++) {
-                                    if (persons[i].toView == person && persons[i].debt) sum += persons[i].debt
-                                }
-                                $("td[data-total='" + person + "']").text(sum)
-                            }
-                        },
-                        error: function (err) {
-                            handleError(err)
-                        }
-                    })
-                },
-                error: function (err) {
-                    handleError(err)
+        url: "/attributes/debts?groups="+groups.map((g)=>g.id),
+        success: function (data) {
+            let group_names = setTableHeader(data)
+            for (var person in data) {
+                let row = "<tr>";
+                row += `<th>${person}</th>`
+                for (let i = 0; i < group_names.length; i++) {
+                    const group_name = group_names[i];
+                    row += data[person][group_name] ? `<td>${data[person][group_name]}</td>` : '<td>0</td>'
                 }
-            })
+                row += "</tr>"
+                $("#debts_table_body").append(row);
+            }
         },
+        error: function (err) {
+            handleError(err)
+        }
+    });
+}
+
+function renderDebts() {
+    $.ajax({
+        url: "/attributes/names?model=groups",
+        success: function(groups){
+            var options = []
+            for (var i = 0; i < groups.length; i++) {
+                options.push({label: groups[i].toView, value: groups[i].id})
+            }
+            $("#debts_groups").multiselect({ 
+                buttonWidth: '350px',
+                maxHeight: 200,
+                buttonClass: 'btn btn-sm btn-flat',
+                enableFiltering: true,
+                buttonText: selectButtonText,
+                onChange: updateDebtsTable
+            });
+            $("#debts_groups").multiselect('dataprovider', options);
+        },
+        // success: function (groups) {
+        //     $("#debts_table_head").append('<th>Фамилия Имя</th>');
+        //     $("#debts_table_filters").append('<th><input type="text" id="debt_filter" class="form-control form-control-sm" value="' + search + '"/></th>');
+        //     setElementEvent($("#debt_filter"), "change", renderDebts)
+        //     for (var i = 0; i < groups.length; i++) {
+        //         $("#debts_table_head").append('<th scope="col" data-group=' + groups[i].id + '>' + groups[i].toView + '</th>');
+        //         $("#debts_table_filters").append('<th></th>')
+        //     }
+        //     $("#debts_table_head").append('<th>Долг</th>');
+        //     $("#debts_table_filters").append('<th></th>');
+        //     $("#debts_table_head").append('<th>Всего</th>');
+        //     $("#debts_table_filters").append('<th></th>');
+        //     var finders = {
+        //         select: "toView,debt",
+        //         populate: "updater",
+        //         sort: "name ASC"
+        //     }
+        //     if (search) finders.where = JSON.stringify({ toView: { contains: search } })
+        //     $.ajax({
+        //         url: "/persons",
+        //         data: finders,
+        //         success: function (persons) {
+        //             for (var i = 0; i < persons.length; i++) {
+        //                 $("#debts_table_body").append("<tr data-person='" + persons[i].id + "'></tr>")
+        //                 $("#debts_table_body tr[data-person='" + persons[i].id + "']").append("<th scope='row'>" + (i + 1) + ". " + persons[i].toView + "</th>")
+        //                 for (var j = 0; j < groups.length; j++) {
+        //                     $("#debts_table_body tr[data-person='" + persons[i].id + "']").append("<td data-group='" + groups[j].toView + "' data-person='" + persons[i].toView + "'>0</td>")
+        //                 }
+        //                 $("#debts_table_body tr[data-person='" + persons[i].id + "']").append("<td data-debt='" + persons[i].toView + "'>"+(persons[i].debt || 0)+"</td>")
+        //                 $("#debts_table_body tr[data-person='" + persons[i].id + "']").append("<td data-total='" + persons[i].toView + "'>"+(persons[i].debt || 0)+"</td>")
+        //             }
+        //             $.ajax({
+        //                 url: "/attributes/debts",
+        //                 success: function (data) {
+        //                     for (var person in data) {
+        //                         var sum = 0
+        //                         for (var group in data[person]) {
+        //                             $("td[data-group='" + group + "'][data-person='" + person + "']").text(data[person][group])
+        //                             sum += data[person][group]
+        //                         }
+        //                         for (var i = 0; i < persons.length; i++) {
+        //                             if (persons[i].toView == person && persons[i].debt) sum += persons[i].debt
+        //                         }
+        //                         $("td[data-total='" + person + "']").text(sum)
+        //                     }
+        //                 },
+        //                 error: function (err) {
+        //                     handleError(err)
+        //                 }
+        //             })
+        //         },
+        //         error: function (err) {
+        //             handleError(err)
+        //         }
+        //     })
+        // },
         error: function (err) {
             handleError(err)
         }

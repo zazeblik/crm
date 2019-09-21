@@ -246,6 +246,9 @@
         <main id="debts_block" class="block">
             <h5 id="debts_title">Отчёты по задолженностям</h5>
             <div class="input-group input-group-sm">
+                <div class="input-group-prepend">
+                    <select id="debts_groups" multiple class="form-control form-control-sm"></select>
+                </div>
                 <input class="form-control" type="text" placeholder="" readonly>
                 <div class="input-group-append">
                     <button id="export_debts_btn" type="button" class="btn btn-outline-primary btn-sm">
@@ -257,7 +260,6 @@
                 <table class="table table-sm table-hover table-bordered">
                     <thead class="thead-inverse">
                         <tr id="debts_table_head"></tr>
-                        <tr id="debts_table_filters"></tr>
                     </thead>
                     <tbody id="debts_table_body"></tbody>
                 </table>

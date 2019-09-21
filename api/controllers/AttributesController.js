@@ -123,7 +123,6 @@ module.exports = {
             return res.status(400).send('Attribute model is required!');
         }
     },
-
     list: async function (req, res) {
         if (!req.query.rows) return res.status(400).send("rows is required!");
         if (!req.query.page) return res.status(400).send("page is required!");
@@ -587,10 +586,13 @@ module.exports = {
         }
     },
     debts: async function(req, res){
+        let selected_groups = req.param("groups");
+        if (!selected_groups) return res.status(400).send('Attribute groups is required!');
+        selected_groups = selected_groups.split(",");
         try {
-            var groups_data = await Groups.find().populate("members")
-            var trains = await Trains.find({sort: "datetime ASC"}).populate("members")
-            var payments = await Payments.find({sort: "starts ASC"}).populate("group")
+            var groups_data = await Groups.find({id: selected_groups}).populate("members")
+            var trains = await Trains.find({group: selected_groups}).sort("datetime ASC").populate("members")
+            var payments = await Payments.find({group: selected_groups}).sort("starts ASC").populate("group")
             var persons = {};
             var groups = {};
             var result = {};
@@ -664,7 +666,6 @@ module.exports = {
                             })
                         }                            
                     }
-
                 }
                 if (groups[trains[i].group].type == "индивидуальная"){
                     for (var j=0; j < train_memebers.length; j++){
@@ -923,12 +924,24 @@ module.exports = {
             }
             var toSheet = {};
             for (var person_id in result){
+                if (!persons[person_id])
+                    continue;
+
                 toSheet[persons[person_id]] = {};
+                let person_total = 0;
                 for (var group_id in result[person_id]){
-                    toSheet[persons[person_id]][group_names[group_id]] = result[person_id][group_id]
+                    let group_sum = result[person_id][group_id] > 0 ? result[person_id][group_id] : 0 
+                    toSheet[persons[person_id]][group_names[group_id]] = group_sum
+                    person_total += group_sum
                 }
+                toSheet[persons[person_id]]["Долг"] = persons[person_id].debt
+                toSheet[persons[person_id]]["Всего"] = person_total
             }
-            return res.send(toSheet);
+            let ordered = {}
+            Object.keys(toSheet).sort().forEach(function(key) {
+                ordered[key] = toSheet[key];
+            });
+            return res.send(ordered);
         } catch (error) { 
             console.log(error);
             return res.status(400).send(error);
