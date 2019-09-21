@@ -1271,6 +1271,17 @@ function showTrainsList(group_id, group_label, cur_page) {
     $(".bootstrap-datetimepicker-widget.dropdown-menu.usetwentyfour.bottom").hide();
     clearBlocks();
     $("#trains_block").show();
+    let totals = {}
+    $.ajax({
+        url: "/trains/get_total?group_id="+group_id,
+        async: false,
+        success: function(data){
+            totals = data;
+        }, 
+        error: function(err){
+            handleError(err);
+        }
+    })
     $.ajax({
         url: "/attributes/list",
         data: {
@@ -1290,8 +1301,7 @@ function showTrainsList(group_id, group_label, cur_page) {
                 if (trains[i].group && trains[i].group.id) group = trains[i].group.id;
                 var trener_id = "";
                 if (trains[i].trener && trains[i].trener.id) trener_id = trains[i].trener.id
-                var train_members_length = 0;
-                if (trains[i].members && trains[i].members.length) train_members_length = trains[i].members.length
+                var train_members_length = totals[trains[i].id];
                 $("#group_trains").append(
                     '<div class="col-md-3">\
                     <div class="card mb-3 box-shadow">\
