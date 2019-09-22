@@ -2315,7 +2315,7 @@ function showPaysForm() {
             if (persons.length){
                 var options = []
                 for (var i = 0; i < persons.length; i++) {
-                    options.push({label: persons[i].toView, value: persons[i].id, "data-id": persons[i].id})
+                    options.push({label: persons[i].toView, value: persons[i].id})   
                 }
                 $("#pays_payer").multiselect({ buttonWidth: '100%', maxHeight: 400, buttonClass: 'btn btn-sm btn-flat', enableFiltering: true, buttonText: selectButtonText })
                 $("#pays_payer").multiselect('dataprovider', options);
