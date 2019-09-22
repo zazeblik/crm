@@ -1017,7 +1017,31 @@ module.exports = {
             console.log(error)
             return res.status(400).send(error)
         }
+    },
+    get_birthdays: function(req, res){
+        let today = new Date();
+        var db = Persons.getDatastore().manager;
+        var rawMongoCollection = db.collection(Persons.tableName);
+        rawMongoCollection.find({
+            $where: `return new Date(this.birthday).getDate() === ${today.getDate()} && new Date(this.birthday).getMonth() === ${today.getMonth()}`
+        }, {
+            toView: true,
+            birthday: true
+        }).toArray(function (err, results) {
+            if (err) return res.serverError(err);
+            results = results.map(r => `${r.toView} (${birthDateToAge(r.birthday)} лет)` );
+            return res.ok(results);
+        });
     }
+}
+
+function birthDateToAge(birthDate) {
+    birthDate = new Date(birthDate);
+
+    var now = new Date(),
+        age = now.getFullYear() - birthDate.getFullYear();
+
+    return now.setFullYear(1972) < birthDate.setFullYear(1972) ? age - 1 : age;
 }
 
 function getPaymentStatus( current_train, person, pays, trains){

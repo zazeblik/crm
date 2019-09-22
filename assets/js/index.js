@@ -23,14 +23,16 @@ function showModelTable(model, query) {
         success: function (attributes) {
             var fields = [];
             var model_fields = [];
+            
             for (var prop in attributes) {
+                let isPersonBirthdayField = prop == "birthday" && model == "persons";
                 if (prop != "id" && prop != "createdAt" && prop != "updatedAt" && prop != "toView" && !attributes[prop].collection) {
                     var th_label = toRU(prop);
                     if (prop == "trener") th_label = window.settings_words.trener;
                     if (prop == "trains") th_label = window.settings_words.trains;
                     $("#table_head").append('<th scope="col" data-prop="' + prop + '">' + th_label + '</th>');
-                    $("#table_filters").append('<th><input type="text" data-filter="' + prop + '" class="form-control form-control-sm" /></th>');
-                    if (prop == "birthday") {
+                    $("#table_filters").append(`<th>${isPersonBirthdayField ? '' : '<input type="text" data-filter="' + prop + '" class="form-control form-control-sm" />'}</th>`);
+                    if (isPersonBirthdayField) {
                         $("#table_head").append('<th scope="col">' + toRU("age") + '</th>');
                         $("#table_filters").append('<th></th>');
                         $("#table_head").append('<th scope="col">' + toRU("age_group") + '</th>');
@@ -80,6 +82,7 @@ function showModelTable(model, query) {
                     for (var i = 0; i < data.length; i++) {
                         var table_row = '<tr id="' + model + '_' + data[i].id + '" data-id="' + data[i].id + '" data-model="' + model + '">';
                         for (var j = 0; j < fields.length; j++) {
+                            let isPersonBirthdayField = fields[j] == "birthday" && model == "persons";
                             var to_cell = "";
                             if (data[i][fields[j]]) {
                                 if (fields[j] == "password") {
@@ -119,7 +122,7 @@ function showModelTable(model, query) {
                             }
                             if (model=="groups" && fields[j] == "type" && to_cell == "сборы") to_cell = window.settings_words.course;
                             table_row += '<td data-prop="' + fields[j] + '">' + to_cell + '</td>';
-                            if (fields[j] == "birthday") {
+                            if (isPersonBirthdayField) {
                                 let age = "";
                                 let age_group = "";
                                 if (to_cell) {
@@ -2249,6 +2252,23 @@ function exportDebts() {
 function showPlans() {
     clearBlocks();
     $("#plans_block").show();
+    $("#birthday_alert").empty();
+    $.ajax({
+        url: '/attributes/get_birthdays',
+        success: function(persons){
+            if (!persons.length)
+                return;
+            let birthlist = ""
+            for (let i = 0; i < persons.length; i++) {
+                const person = persons[i];
+                birthlist += `<li>${person}</li>`
+            }
+            $("#birthday_alert").append(`<div class="alert alert-success" role="alert">Сегодня день рождения участников:<ul>${birthlist}</ul></div>`)
+        },
+        error: function (err) {
+            handleError(err);
+        }
+    })
     $('#plans_calendar').fullCalendar('refetchEvents')
     $('#plans_day').fullCalendar('refetchEvents')
     $('#plans_calendar').fullCalendar('render')
