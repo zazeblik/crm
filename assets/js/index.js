@@ -2610,7 +2610,7 @@ var personal_calendar_options = {
     header: {
         left: 'prev,next',
         center: 'title',
-        right: 'month,agendaWeek',
+        right: null
     },
     themeSystem: "bootstrap4",
     height: "auto",
