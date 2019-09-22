@@ -208,14 +208,14 @@ module.exports = {
                             console.log("find error");
                             return res.status(400).send(err);
                         } else {
-                            if (req.param('model') == "persons" && sort == "updatedAt DESC"){
-                                for(let i = 0; i < data.length; i++){
-                                    data[i].group_ids = (_.pluck(data[i].groups,"toView")).toString();
-                                    delete data[i].groups;
-                                }
-                                data = data.sort(compareByNames)
-                                data = data.sort(compareByGroupIds)
-                            }
+                            // if (req.param('model') == "persons" && sort == "updatedAt DESC"){
+                            //     for(let i = 0; i < data.length; i++){
+                            //         data[i].group_ids = (_.pluck(data[i].groups,"toView")).toString();
+                            //         delete data[i].groups;
+                            //     }
+                            //     data = data.sort(compareByNames)
+                            //     data = data.sort(compareByGroupIds)
+                            // }
                             
                             return res.send({total: total, total_pages: total_pages, data: data, perPage: perPage, page: currentPage});
                         }
