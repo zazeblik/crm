@@ -1945,9 +1945,6 @@ function setVisitsTableHeader(visits){
             }
         }
     }
-    uniqueTrainNames.splice(uniqueTrainNames.indexOf("Всего"), 1);
-    uniqueTrainNames.push("Всего")
-
     $("#report_table_head").append("<th>Фамилия Имя</th>")
     for (let i = 0; i < uniqueTrainNames.length; i++) {
         let name = uniqueTrainNames[i];
