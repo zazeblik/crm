@@ -2031,11 +2031,15 @@ function setDebtsTableHeader(debts){
             }
         }
     }
-    uniqueGroupNames.splice(uniqueGroupNames.indexOf("Долг"), 1);
-    uniqueGroupNames.push("Долг")
-    uniqueGroupNames.splice(uniqueGroupNames.indexOf("Всего"), 1);
-    uniqueGroupNames.push("Всего")
-
+    if (uniqueGroupNames.includes("Долг")){
+        uniqueGroupNames.splice(uniqueGroupNames.indexOf("Долг"), 1);
+        uniqueGroupNames.push("Долг")
+    }
+    if (uniqueGroupNames.includes("Всего")){
+        uniqueGroupNames.splice(uniqueGroupNames.indexOf("Всего"), 1);
+        uniqueGroupNames.push("Всего")
+    }
+    
     $("#debts_table_head").append("<th>Фамилия Имя</th>")
     for (let i = 0; i < uniqueGroupNames.length; i++) {
         $("#debts_table_head").append(`<th>${uniqueGroupNames[i]}</th>`)
