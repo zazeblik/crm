@@ -233,9 +233,83 @@ module.exports = {
             }            
         })
     },
+    presonal_report: async function(req, res){
+        let start = req.param("start")
+        let end = req.param("end")
+        let trener = req.param("trener")
+        if (!start) return res.serverError("start is required")
+        if (!end) return res.serverError("end is required")
+        if (!trener) return res.serverError("trener is required")
+        var trains_where = {
+            datetime: {
+                ">=": start
+            },
+            datetime_end: {
+                "<=": end
+            }
+        };
+        trains_where.trener = trener
+        var pers_groups = (await Groups.find({type: "индивидуальная"})).map((g) => g.id);
+        trains_where.group = pers_groups
+        try {
+            let trains = await Trains.find({
+                where: trains_where
+            }).sort("datetime ASC").populate("members", {select: "toView"})
+            
+            let trains_groups = [...new Set(trains.map(t => t.group))]
+            
+            let payment_groups = await Groups.find({id: trains_groups}).populate("members", {select: "toView"})
+            let payment_group_by_id = {}
+            payment_groups.forEach(payment_group => {
+                payment_group_by_id[payment_group.id] = payment_group;
+            })
+            
+            let result = [];
+            trains = trains.filter(t => payment_group_by_id[t.group].members.length);
+            let pays = await Payments
+                    .find({ where: { group: trains_groups, or: [{ starts: { "<": end } }, { ends: { ">=": start } }] } })
+                    .sort("starts ASC");
+
+            let pays_min_starts = pays.length ? Math.min(...pays.map(p => p.starts)) : start;
+            let pays_max_ends = pays.length ? Math.max(...pays.map(p => p.ends)) : end;
+            let in_pays_trains = await Trains.find({ group: trains_groups, datetime: { ">=": pays_min_starts, "<": pays_max_ends } }).sort("datetime ASC").populate("members")
+            trains.forEach(async train => {
+                let train_visits = []
+                let train_group = train.group;
+                let train_memebers_ids = train.members.map(tm => tm.id)
+                let train_group_members = payment_group_by_id[train_group].members;
+                train_group_members.forEach(async train_group_member => {
+                    let person_pays = pays.filter(p => p.payer == train_group_member.id && p.group == train.group);
+                    let person_in_pays_trains = in_pays_trains.filter(ipt => {
+                        let ipt_members = ipt.members.map(iptm => iptm.id)
+                        return ipt.group == train.group && ipt_members.includes(train_group_member.id)
+                    })
+                    train_visits.push({
+                        visit: train_memebers_ids.includes(train_group_member.id),
+                        name: train_group_member.toView,
+                        payment: getPaymentStatus(train, train_group_member, person_pays, person_in_pays_trains ),
+                        payment_sum: getPaymentSum(train, train_group_member, person_pays, person_in_pays_trains )
+                    })
+                });
+                result.push({
+                    id: train.id,
+                    datetime: train.datetime,
+                    datetime_end: train.datetime_end,
+                    visits: train_visits
+                })
+            });
+
+            return res.send(result);
+        } catch (error) {
+            console.log(error)
+            return res.status(400).send(error);  
+        }
+
+    },
     total: async function(req, res){
         if (req.param("start") && req.param("end")) {
             var group = req.param("group")
+            var trener = req.param("trener")
             var start = req.param("start")
             var end = req.param("end")
             var trains_where = {
@@ -246,18 +320,27 @@ module.exports = {
                     "<=": end
                 }
             };
-            if (group) trains_where.group = group
+            var pays_where = {
+                starts: {
+                    ">=": start,
+                    "<": end
+                }
+            };
+            if (group) {
+                trains_where.group = group
+                pays_where.group = group
+            } 
+            if (trener){
+                trains_where.trener = trener
+                var trener_groups = (await Groups.find({trener: trener, type: "индивидуальная"})).map((g) => g.id);
+                trains_where.group = trener_groups
+                pays_where.group = trener_groups
+            }
             try {
                 var trains = await Trains.find({
                     where: trains_where
                 }).populate("members", {select: "toView"})
-                var pays_where = {
-                    starts: {
-                        ">=": start,
-                        "<": end
-                    }
-                };
-                if (group) pays_where.group = group
+                
                 var pays = await Payments.find({
                     where: pays_where
                 })
@@ -1032,6 +1115,18 @@ module.exports = {
             results = results.map(r => `${r.toView} (${birthDateToAge(r.birthday)} лет)` );
             return res.ok(results);
         });
+    },
+    get_treners: async function(req, res){
+        let db = Trains.getDatastore().manager;
+        let trainsMongoCollection = db.collection(Trains.tableName);
+        let personsMongoCollection = db.collection(Persons.tableName);
+        try {
+            let trener_ids = await trainsMongoCollection.distinct("trener")
+            let treners = await personsMongoCollection.find({_id: {$in: trener_ids}},{toView: true}).toArray()
+            return res.send(treners)
+        } catch (error) {
+            return res.serverError(error);
+        }
     }
 }
 
@@ -1070,4 +1165,32 @@ function getPaymentStatus( current_train, person, pays, trains){
         return pay.count > abon_trains.indexOf(current_train.id) + 1;
     }
     return false
+}
+
+function getPaymentSum( current_train, person, pays, trains){
+    if (!pays.length) return 0;
+    
+    let train_start = current_train.datetime;
+    let train_end = current_train.datetime_end;
+
+    for (let i = 0; i < pays.length; i++) {
+        const pay = pays[i];
+        let train_in_pay = (train_start >= pay.starts) && (train_end <= pay.ends)
+        if (!train_in_pay) continue;
+        if (pay.type != "абонемент") return pay.sum;
+        if (!pay.count) return pay.sum;
+
+        let abon_trains = []
+        trains.forEach(train => {
+            let train_memebers = train.members
+            let train_memebers_ids = train_memebers.map((tm)=>tm.id)
+            let is_visit = train_memebers_ids.includes(person.id)
+            let train_in_pay = (train.start >= pay.starts) && (train.end <= pay.ends)
+            if (train_in_pay && is_visit) {
+                abon_trains.push(train.id)
+            }
+        });
+        return pay.count > abon_trains.indexOf(current_train.id) + 1 ? pay.sum : 0;
+    }
+    return 0
 }

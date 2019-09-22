@@ -1426,6 +1426,25 @@ function compareByName( a, b ) {
     }
     return 0;
 }
+function compareByToView( a, b ) {
+    if ( a.toView < b.toView ){
+      return -1;
+    }
+    if ( a.toView > b.toView ){
+      return 1;
+    }
+    return 0;
+}
+
+function compareByPayerToView( a, b ) {
+    if ( a.payer.toView < b.payer.toView ){
+      return -1;
+    }
+    if ( a.payer.toView > b.payer.toView ){
+      return 1;
+    }
+    return 0;
+}
 
 function updateShowTrain(train_id, group_id, trener_id, train_name) {
     $("#train_journal_title").text(window.settings_words["train"]+": " + train_name)
@@ -1603,6 +1622,7 @@ function renderStatsMembers() {
         async: false,
         success: function (trains) {
             for (var i = 0; i < trains.length; i++) {
+                trains[i].members =  trains[i].members.sort(compareByToView)
                 for (var j = 0; j < trains[i].members.length; j++) {
                     if (labels.includes(trains[i].members[j].toView)) {
                         counts[labels.indexOf(trains[i].members[j].toView)]++;
@@ -1827,7 +1847,6 @@ function renderStatsPayments() {
     var next_month_date = new Date(year, month);
     next_month_date.setMonth(next_month_date.getMonth() + 1);
 
-
     $("#stats_payments_trains").text("");
     $("#stats_payments_visits").text("");
     $("#stats_payments_pays").text("");
@@ -1863,6 +1882,7 @@ function renderStatsPayments() {
         async: false,
         success: function (payments) {
             for (var i = 0; i < payments.length; i++) {
+                payments = payments.sort(compareByPayerToView)
                 if (payments[i].payer){
                     if (labels.includes(payments[i].payer.toView)) {
                         counts[labels.indexOf(payments[i].payer.toView)] += payments[i].sum;
@@ -1877,6 +1897,7 @@ function renderStatsPayments() {
             handleError(err);
         }
     })
+    
     ctx.height = labels.length * 15;
     paysChart = new Chart(ctx, {
         type: 'horizontalBar',
@@ -1955,6 +1976,70 @@ function setVisitsTableHeader(visits){
         $("#report_table_head").append(`<th>${date_to_set}</th>`)
     }
     return uniqueTrainNames
+}
+
+function getTime(datetime){
+    return addZeros(new Date(datetime).getHours())+":"+addZeros(new Date(datetime).getMinutes())
+}
+
+function getPersonalCalendarEvents(start, end, timezone, callback) {
+    if (!$("#personal_report_trener_select").val()) {
+        $("#personal_report_stats_total_trains").text("0")
+        $("#personal_report_stats_total_visits").text("0")
+        $("#personal_report_stats_total_pays").text("0")
+        $("#personal_report_stats_total_sum").text("0")
+        return callback([]);
+    }
+    $.ajax({
+        url: "/attributes/presonal_report",
+        data: {
+            trener: $("#personal_report_trener_select").val(),
+            start: start.valueOf(),
+            end: end.valueOf()
+        },
+        success: function (trains) {
+            var events = [];
+            $("#personal_report_stats_total_trains").text(trains.length);
+            let visits_count = 0;
+            let payments_count = 0;
+            let payments_sum = 0;
+            const reducer = (accumulator, currentValue) => accumulator + currentValue;
+            for (var i = 0; i < trains.length; i++) {
+                visits_count += trains[i].visits.filter(v => v.visit).length; 
+                let visits_payments = trains[i].visits.filter(v => v.payment);
+                payments_count += visits_payments.length; 
+                payments_sums = visits_payments.map(vp => vp.payment_sum)
+                payments_sum += payments_sums.length ? payments_sums.reduce(reducer) : 0;
+                let title = trains[i].visits.map(v => v.name.split(" ")[0]).join(' ')
+                let time = new Date(trains[i].datetime).getHours()
+                time += ":"+addZeros(new Date(trains[i].datetime).getMinutes())
+                let time_add = ' - ' +  new Date(trains[i].datetime_end).getHours()
+                time_add += ":"+addZeros(new Date(trains[i].datetime_end).getMinutes())
+                var obj = {
+                    id: trains[i].id,
+                    start: new Date(trains[i].datetime),
+                    end: new Date(trains[i].datetime_end),
+                    time: time,
+                    time_add: time_add,
+                    title: title,
+                    visits: trains[i].visits
+                }
+                events.push(obj)
+            }
+            $("#personal_report_stats_total_visits").text(visits_count)
+            $("#personal_report_stats_total_pays").text(payments_count)
+            $("#personal_report_stats_total_sum").text(payments_sum)
+            callback(events);
+        },
+        error: function (err) {
+            handleError(err)
+        }
+    })
+}
+
+function renderPersonalReport(){
+    $('#personal_report_calendar').fullCalendar('refetchEvents')
+    $('#personal_report_calendar').fullCalendar('render')
 }
 
 function renderReport() {
@@ -2110,6 +2195,27 @@ function renderDebts() {
     })
 }
 
+function showPersonalReports(){
+    clearBlocks();
+    $("#personal_report_block").show();
+    
+    $.ajax({
+        url: "/attributes/get_treners",
+        success: function (treners) {
+            $("#personal_report_trener_select").empty();
+            for (var i = 0; i < treners.length; i++) {
+                $("#personal_report_trener_select").append('<option value="' + treners[i]._id + '">' + treners[i].toView + '</a>')
+            }
+            $("#personal_report_months_select").val((new Date()).getMonth())
+            $("#personal_report_year_input").val((new Date()).getFullYear())
+            renderPersonalReport();
+        },
+        error: function (err) {
+            handleError(err)
+        }
+    })
+}
+
 function showReports() {
     clearBlocks();
     $("#reports_block").show();
@@ -2137,6 +2243,7 @@ function showDebts() {
     $("#debts_year_input").val((new Date()).getFullYear())
     renderDebts();
 }
+
 
 function exportReport() {
     var group_id = $("#report_group_select").val()
@@ -2238,6 +2345,22 @@ function exportDebts() {
     var wopts = { bookType: 'xlsx', type: 'array' };
     var wbout = XLSX.write(wb, wopts);
     var fileName = "Задолженности";
+    var link = document.createElement("a");
+    var blob = new Blob([wbout], { type: "application/octet-stream" });
+    link.href = window.URL.createObjectURL(blob);
+    link.style = "visibility:hidden";
+    link.download = fileName + ".xlsx";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function exportPersonalReport(){
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.table_to_sheet($("#personal_report_calendar table:first")[0]));
+    var wopts = { bookType: 'xlsx', type: 'array' };
+    var wbout = XLSX.write(wb, wopts);
+    var fileName = "Индивидуальные";
     var link = document.createElement("a");
     var blob = new Blob([wbout], { type: "application/octet-stream" });
     link.href = window.URL.createObjectURL(blob);
@@ -2483,6 +2606,37 @@ function saveGroupEdit() {
     })
 }
 
+var personal_calendar_options = {
+    header: {
+        left: 'prev,next',
+        center: 'title',
+        right: 'month,agendaWeek',
+    },
+    themeSystem: "bootstrap4",
+    height: "auto",
+    allDaySlot: true,
+    minTime: "08:00:00",
+    maxTime: "23:59:59",
+    timezone: "local",
+    eventRender: function(event, element, view) {
+        let visits = event.visits;
+        let visits_str = '';
+        visits.forEach(visit => {
+            visits_str += `<div class="border-top" style="overflow-x: hidden;">
+            <small>${visit.name.split(" ")[0]}</small>
+            <small class="d-none d-lg-inline"> ${visit.name.split(" ")[1]}</small><br class="d-none d-lg-inline"/>
+            ${visit.visit ? '<i class="fa fa-check" title="Присутствовал"></i>' : '<i class="fa fa-close" title="Не присутствовал"></i>'}
+            <span class="badge badge-${visit.payment ? 'success' : 'danger'}">${visit.payment ? visit.payment_sum + 'р' : 'нет оплаты'}</span>
+            </div>`
+        });
+        return $(`<div class="bg-light border border-secondary rounded m-1 text-center">
+        <small>${event.time}<span class="d-none d-lg-inline">${event.time_add}</span></small><br/>
+        ${visits_str}
+        </div>`);
+    },
+    events: getPersonalCalendarEvents
+};
+
 var plans_calendar_options = {
     header: {
         left: 'prev,next today',
@@ -2709,11 +2863,14 @@ function createHandlers() {
     $("#back_to_trains_btn").on("click", showLastTrainsList)
     $("#show_group_train_btn").on("click", showAddTrainDatepicker)
     $("#reports_menu_item").on("click", showReports)
+    $("#personal_report_menu_item").on("click", showPersonalReports)
     $("#debts_menu_item").on("click", showDebts)
     $("#report_group_select").on("change", renderReport)
     $("#report_months_select").on("change", renderReport)
     $("#report_year_input").on("change", renderReport)
+    $("#personal_report_trener_select").on("change", renderPersonalReport)
     $("#export_report_btn").on("click", exportReport)
+    $("#personal_report_export_btn").on("click", exportPersonalReport)
     $("#export_debts_btn").on("click", exportDebts)
     $("#plans_menu_item").on("click", showPlans)
     $("#add_group_train_btn").on("click", addGroupTrain)
@@ -2723,6 +2880,7 @@ function createHandlers() {
     $("#add_member_to_train_btn").on("click", showAddMemberToTrain)
     $("#add_plans_train_btn").on("click", addPlansTrain)
     $('#plans_calendar').fullCalendar(plans_calendar_options)
+    $('#personal_report_calendar').fullCalendar(personal_calendar_options)
     $('#plans_day').fullCalendar(plans_day_options)
     $("#stats_members_menu_item").on("click", showStatsMembers)
     $("#stats_treners_menu_item").on("click", showStatsTreners)

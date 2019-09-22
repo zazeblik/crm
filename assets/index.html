@@ -37,7 +37,7 @@
             </form>
         </div>
     </div>
-    <div id="tables_page" class="page"  style='overflow-x:hidden;'>
+    <div id="tables_page" class="page">
         <header>
             <nav class="navbar navbar-expand-lg fixed-top navbar-dark bg-dark shadow-sm">
                 <a class="navbar-brand" href="/">ElektroTik</a>
@@ -70,7 +70,7 @@
                                 <a id="stats_members_menu_item" class="dropdown-item" href="javascript:void(0)">По участникам</a>
                                 <a id="stats_treners_menu_item" class="dropdown-item" href="javascript:void(0)">По тренерам</a>
                                 <a id="stats_payments_menu_item" class="dropdown-item" href="javascript:void(0)">По оплате</a>
-                                <!-- <a id="personal_trains_menu_item" class="dropdown-item" href="javascript:void(0)">По индивидуальным занятиям</a> -->
+                                <a id="personal_report_menu_item" class="dropdown-item" href="javascript:void(0)">По индивидуальным</a>
                             </div>
                         </li>
                     </ul>
@@ -183,8 +183,44 @@
                 </div>
             </div>
         </main>
-        <main id="personal_trains_report_block" class="block">
-            <h5 id="personal_trains_report_title">Отчёт по индивидуальным занятиям</h5>
+        <main id="personal_report_block" class="block">
+            <h5>Отчёт по индивидуальным занятиям</h5>
+            <div class="input-group input-group-sm">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">Тренер:</span>
+                    <select id="personal_report_trener_select" class="form-control form-control-sm"></select>
+                </div>
+                <input class="form-control" type="text" placeholder="" readonly>
+                <!-- <div class="input-group-append">
+                    <button id="personal_report_export_btn" type="button" class="btn btn-outline-primary btn-sm">
+                        <i class="fa fa-file-excel-o"></i>&nbsp;Экспорт
+                    </button>
+                </div> -->
+            </div>
+            <br/>
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>Занятий: </strong>
+                        <span id="personal_report_stats_total_trains"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Посещений: </strong>
+                        <span id="personal_report_stats_total_visits"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Платежей: </strong>
+                        <span id="personal_report_stats_total_pays"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Сумма платежей: </strong>
+                        <span id="personal_report_stats_total_sum"></span>
+                    </div>
+                </div>
+            </div>
+            <br/>
+            <div id="personal_report_calendar">
+            </div>
         </main>
         <main id="reports_block" class="block">
             <h5 id="reports_title">Отчёты по посещаемости</h5>
