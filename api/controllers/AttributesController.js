@@ -593,6 +593,7 @@ module.exports = {
             var groups_data = await Groups.find({id: selected_groups}).populate("members")
             var trains = await Trains.find({group: selected_groups}).sort("datetime ASC").populate("members")
             var payments = await Payments.find({group: selected_groups}).sort("starts ASC").populate("group")
+            
             var persons = {};
             var groups = {};
             var result = {};
@@ -601,8 +602,13 @@ module.exports = {
             var personal_dates = {};
             var sbor_dates = {};
             var group_trains = {};
+            var all_groups_members = {}
             for (var i = 0; i < groups_data.length; i++){
                 groups[groups_data[i].id] = groups_data[i];
+                var group_members = groups_data[i].members;
+                group_members.forEach(member => {
+                    all_groups_members[member.id] = member;
+                });
             }
             var once_pays = {};
             var once_trains = {};
@@ -924,8 +930,9 @@ module.exports = {
                     toSheet[persons[person_id]][group_names[group_id]] = group_sum
                     person_total += group_sum
                 }
-                if (Number(persons[person_id].debt)){
-                    toSheet[persons[person_id]]["Долг"] = Number(persons[person_id].debt)    
+                if (Number(all_groups_members[person_id].debt)){
+                    toSheet[persons[person_id]]["Долг"] = Number(all_groups_members[person_id].debt)
+                    person_total += Number(all_groups_members[person_id].debt)
                 }
                 toSheet[persons[person_id]]["Всего"] = person_total
             }
