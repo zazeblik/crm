@@ -455,54 +455,58 @@ function addModel(from_model, from_values) {
                     format: 'LT'
                 })
             }
-            if (model == "trains") {
-                autoCompleteDatesAndSum($("select[name='group']").val(), model)
-                $("select[name='group']").unbind("change");
-                $("select[name='group']").on("change", function () {
-                    autoCompleteDatesAndSum($(this).val(), model)
-                })
-                $("#datetimepicker_datetime").data("datetimepicker")._notifyEvent = function (e) {
-                    if (e.type == "change.datetimepicker") {
-                        correctDates($("select[name='group']").val(), this.input[0], null)
-                    }
-                }
-            }
-            if (model == "groups") {
-                $("select[name='type']").unbind("change");
-                $("select[name='type']").on("change", function () {
-                    autoHideSchedule($(this).val())
-                })
-            }
-            if (model == "payments") {
-                autoCompleteDatesAndSum($("select[name='group']").val(), model)
-                autoHideTypes($("select[name='group']").val())
-                $("select[name='group']").unbind("change");
-                $("select[name='group']").on("change", function () {
-                    autoCompleteDatesAndSum($(this).val(), model)
-                    autoHideTypes($(this).val())
-                    autoHideCount($("select[name='type']").val())
-                })
-                $("#datetimepicker_starts").data("datetimepicker")._notifyEvent = function (e) {
-                    if (e.type == "change.datetimepicker") {
-                        var type = $("select[name='type']").val() 
-                        correctDates($("select[name='group']").val(), this.input[0], type)
-                    }
-                }
-                autoHideCount($("select[name='type']").val())
-                $("select[name='type']").unbind("change");
-                $("select[name='type']").on("change", function () {
-                    autoHideCount($(this).val())
-                    correctSum($(this).val())
-                    correctDates($("select[name='group']").val(), document.getElementById("prop_starts"), $(this).val())
-                })
-                if (from_values && from_values.starts) $("input[name='starts']").val(moment(Number(from_values.starts)).format('DD.MM.YYYY HH:mm'))
-                if (from_values && from_values.ends) $("input[name='ends']").val(moment(Number(from_values.ends)).format('DD.MM.YYYY HH:mm'))
-            }
+            correctForm(model, from_values);
         },
         error: function (err) {
             handleError(err)
         }
     })
+}
+
+function correctForm(model, from_values){
+    if (model == "trains") {
+        autoCompleteDatesAndSum($("select[name='group']").val(), model)
+        $("select[name='group']").unbind("change");
+        $("select[name='group']").on("change", function () {
+            autoCompleteDatesAndSum($(this).val(), model)
+        })
+        $("#datetimepicker_datetime").data("datetimepicker")._notifyEvent = function (e) {
+            if (e.type == "change.datetimepicker") {
+                correctDates($("select[name='group']").val(), this.input[0], null)
+            }
+        }
+    }
+    if (model == "groups") {
+        $("select[name='type']").unbind("change");
+        $("select[name='type']").on("change", function () {
+            autoHideSchedule($(this).val())
+        })
+    }
+    if (model == "payments") {
+        autoCompleteDatesAndSum($("select[name='group']").val(), model)
+        autoHideTypes($("select[name='group']").val())
+        $("select[name='group']").unbind("change");
+        $("select[name='group']").on("change", function () {
+            autoCompleteDatesAndSum($(this).val(), model)
+            autoHideTypes($(this).val())
+            autoHideCount($("select[name='type']").val())
+        })
+        $("#datetimepicker_starts").data("datetimepicker")._notifyEvent = function (e) {
+            if (e.type == "change.datetimepicker") {
+                var type = $("select[name='type']").val() 
+                correctDates($("select[name='group']").val(), this.input[0], type)
+            }
+        }
+        autoHideCount($("select[name='type']").val())
+        $("select[name='type']").unbind("change");
+        $("select[name='type']").on("change", function () {
+            autoHideCount($(this).val())
+            correctSum($(this).val())
+            correctDates($("select[name='group']").val(), document.getElementById("prop_starts"), $(this).val())
+        })
+        if (from_values && from_values.starts) $("input[name='starts']").val(moment(Number(from_values.starts)).format('DD.MM.YYYY HH:mm'))
+        if (from_values && from_values.ends) $("input[name='ends']").val(moment(Number(from_values.ends)).format('DD.MM.YYYY HH:mm'))
+    }
 }
 
 function getSchedule(schedule_str){
@@ -576,6 +580,7 @@ function showEditModel(id, from_model) {
                 }
                 $("select[type=collection],select[type=models]").multiselect('refresh')
                 $("#modal_title").text(toRU(model) + ": редактирование")
+                correctForm(model, data)
             })
         },
         error: function (err) {
@@ -1006,14 +1011,14 @@ function getGroupTime(schedule_str) {
 
 function setAutoCompleteInputDates(cur_date, cur_group){
     var moment_date;
-    var group_time = getGroupTime(cur_group.schedule)
-    if (cur_group) {
+    if (cur_group && cur_group.schedule) {
+        var group_time = getGroupTime(cur_group.schedule)
         moment_date = moment(addZeros(cur_date.getDate()) + "." + addZeros(Number(cur_date.getMonth()) + 1) + "." + cur_date.getFullYear() + " " + group_time, 'DD.MM.YYYY HH:mm')
     } else {
         moment_date = moment("01." + addZeros(Number(cur_date.getMonth()) + 1) + "." + cur_date.getFullYear() + " 00:00", 'DD.MM.YYYY HH:mm');
     }
     var add_duration_date = new Date(moment_date.valueOf())
-    if (cur_group) {
+    if (cur_group && cur_group.duration) {
         add_duration_date.setMinutes(add_duration_date.getMinutes() + cur_group.duration);
     } else {
         add_duration_date.setMonth(add_duration_date.getMonth() + 1);
@@ -1414,7 +1419,7 @@ function birthDateToAge(birthDate) {
     var now = new Date(),
         age = now.getFullYear() - birthDate.getFullYear();
 
-    return now.setFullYear(1972) < birthDate.setFullYear(1972) ? age - 1 : age;
+    return age;
 }
 
 function compareByName( a, b ) {
