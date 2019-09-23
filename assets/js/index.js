@@ -325,13 +325,13 @@ function addModel(from_model, from_values) {
                                             if (i == 5) label = 'пт'
                                             if (i == 6) label = 'сб'
                                             if (i == 7) label = 'вс'
-                                            modal_body += `<div class="input-group input-group-sm date" id="datetimepicker_schedule_${i}" data-target-input="nearest">\
+                                            modal_body += `<div class="input-group input-group-sm date">\
                                                 <div class="input-group-prepend">\
-                                                    <span class="input-group-text" id="">${label}</span>\
+                                                    <span class="input-group-text">${label}</span>\
                                                     <div class="input-group-text"><input id="schedule_day_${i}" type="checkbox" onchange="scheduleDayChecked(this)"></div>\
                                                     <div class="input-group-text" data-target="#datetimepicker_schedule_${i}"><i class="fa fa-clock-o"></i></div>\
                                                 </div>\
-                                                <input id="schedule_time_${i}" type="text" class="form-control datetimepicker-input" data-target="#datetimepicker_schedule_${i}" disabled>\
+                                                <input id="datetimepicker_schedule_${i}" type="text" class="form-control datetimepicker-input"  data-target-input="nearest" disabled>\
                                             </div>`;
                                         }
                                     } else {
@@ -565,7 +565,7 @@ function showEditModel(id, from_model) {
                             let schedule = getSchedule(data[name]);
                             for (let prop in schedule){
                                 $(`#schedule_day_${prop}`).attr("checked", true).change();
-                                $(`#schedule_time_${prop}`).val(schedule[prop]);
+                                $(`#datetimepicker_schedule_${prop}`).val(schedule[prop]);
                             }
                         } else {
                             if (datetimes.includes(name)) {
@@ -630,10 +630,9 @@ function saveModel(from_model, cb) {
                 let schedule_arr = [];
                 for (let i = 1; i <= 7; i++){
                     let checked = $(`#schedule_day_${i}`).prop('checked');
-                    let time = $(`#schedule_time_${i}`).val();
+                    let time = $(`#datetimepicker_schedule_${i}`).val();
                     if (checked && time) schedule_arr.push(`${i} ${time}`)
                 }
-                
                 to_post[attr_name] = schedule_arr.join(',');
                 return;
             }
@@ -714,7 +713,7 @@ function saveModel(from_model, cb) {
                         let schedule_arr = [];
                         for (let i = 1; i <= 7; i++){
                             let checked = $(`#schedule_day_${i}`).prop('checked');
-                            let time = $(`#schedule_time_${i}`).val();
+                            let time = $(`#datetimepicker_schedule_${i}`).val();
                             if (checked && time) schedule_arr.push(`${i} ${time}`)
                         }
                         update_obj[name] = schedule_arr.join(',');
