@@ -366,7 +366,9 @@ function addModel(from_model, from_values) {
                                     url: "/attributes/names?model=" + (data[prop].collection).toLowerCase(),
                                     async: false,
                                     success: function (collection) {
+                                        collection = collection.sort(compareByToView);
                                         last_collection = collection
+
                                         for (var i = 0; i < collection.length; i++) {
                                             if (Array.isArray(valueToInsert) && valueToInsert.includes(collection[i].id)) {
                                                 modal_body += '<option selected="selected" value="' + collection[i].id + '">' + collection[i][toViewField] + '</option>'
@@ -405,6 +407,7 @@ function addModel(from_model, from_values) {
                                     url: "/attributes/names?model=" + (data[prop].model).toLowerCase(),
                                     async: false,
                                     success: function (models) {
+                                        models = models.sort(compareByToView);
                                         last_models = models
                                         for (var i = 0; i < models.length; i++) {
                                             for (var i = 0; i < models.length; i++) {
@@ -1193,7 +1196,7 @@ function deleteRow(ws, row_index){
 
 function exportModel() {
     var wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.table_to_sheet(document.getElementById("data_table")));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.table_to_sheet(document.getElementById("data_table"), {raw: true }));
     var wopts = { bookType: 'xlsx', type: 'array' };
     deleteRow(wb.Sheets[wb.SheetNames[0]], 1);
     var wbout = XLSX.write(wb, wopts);
@@ -2345,7 +2348,7 @@ function exportReport() {
 
 function exportDebts() {
     var wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.table_to_sheet(document.getElementById("debts_table")));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.table_to_sheet(document.getElementById("debts_table"), {raw: true }));
     var wopts = { bookType: 'xlsx', type: 'array' };
     var wbout = XLSX.write(wb, wopts);
     var fileName = "Задолженности";
@@ -2459,18 +2462,19 @@ function showPaysForm() {
     $.ajax({
         url: "/attributes/names?model=persons",
         success: function (persons) {
-            if (persons.length){
-                var options = []
-                for (var i = 0; i < persons.length; i++) {
-                    options.push({label: persons[i].toView, value: persons[i].id})   
-                }
-                $("#pays_payer").multiselect({ buttonWidth: '100%', maxHeight: 400, buttonClass: 'btn btn-sm btn-flat', enableFiltering: true, buttonText: selectButtonText })
-                $("#pays_payer").multiselect('dataprovider', options);
-                getDebtDates($("#pays_payer"))
-                setElementEvent($("#pays_payer"), "change", function () {
-                    getDebtDates($(this))
-                })
+            if (!persons.length)
+                return;
+            var options = []
+            persons = persons.sort(compareByToView);
+            for (var i = 0; i < persons.length; i++) {
+                options.push({label: persons[i].toView, value: persons[i].id})   
             }
+            $("#pays_payer").multiselect({ buttonWidth: '100%', maxHeight: 400, buttonClass: 'btn btn-sm btn-flat', enableFiltering: true, buttonText: selectButtonText })
+            $("#pays_payer").multiselect('dataprovider', options);
+            getDebtDates($("#pays_payer"))
+            setElementEvent($("#pays_payer"), "change", function () {
+                getDebtDates($(this))
+            })
         },
         error: function (err) {
             handleError(err);

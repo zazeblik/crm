@@ -66,10 +66,10 @@ function compareByNames( a, b ) {
 }
 
 function compareByGroupIds( a, b ) {
-    if ( a.group_ids < b.group_ids ){
+    if ( a.group_ids > b.group_ids ){
       return -1;
     }
-    if ( a.group_ids > b.group_ids ){
+    if ( a.group_ids < b.group_ids ){
       return 1;
     }
     return 0;
@@ -213,6 +213,7 @@ module.exports = {
                             //         data[i].group_ids = (_.pluck(data[i].groups,"toView")).toString();
                             //         delete data[i].groups;
                             //     }
+                                
                             //     data = data.sort(compareByNames)
                             //     data = data.sort(compareByGroupIds)
                             // }

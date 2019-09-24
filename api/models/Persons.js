@@ -57,6 +57,9 @@ module.exports = {
       collection: "Parents",
       via: "child"
     },
+    partner: {
+      model: "Persons"
+    },
     groups: {
       collection: "Groups",
       via: "members"
