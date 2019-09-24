@@ -103,7 +103,7 @@ function showModelTable(model, query) {
                                 } else if (attributes[fields[j]].collection) {
                                     to_cell = data[i][fields[j]].length;
                                 } else if (attributes[fields[j]].type == "boolean") {
-                                    to_cell = data[i][fields[j]] ? '<i class="fa fa-check"></i>' : '';
+                                    to_cell = data[i][fields[j]] ? '<i class="fa fa-check"><span class="d-none">есть</span></i>' : '<span class="d-none">нет</span>';
                                 } else if (attributes[fields[j]].model) {
                                     var toViewField = "id";
                                     if (data[i][fields[j]].toView) {
@@ -409,6 +409,7 @@ function addModel(from_model, from_values) {
                                     success: function (models) {
                                         models = models.sort(compareByToView);
                                         last_models = models
+                                        if (prop == 'partner') modal_body += '<option value="">Ничего не выбрано</option>'
                                         for (var i = 0; i < models.length; i++) {
                                             for (var i = 0; i < models.length; i++) {
                                                 if (valueToInsert == models[i].id) {
@@ -746,7 +747,7 @@ function saveModel(from_model, cb) {
                         } else {
                             if($(el).attr("type") == "number"){
                                 update_obj[name] = Number($(el).val());
-                            }else {
+                            }else {                                     
                                 update_obj[name] = $(el).val();
                             }
                         }
@@ -1653,6 +1654,7 @@ function renderStatsMembers() {
             handleError(err);
         }
     })
+    labels = cutLabels(labels)
     ctx.height = labels.length * 15;
     membersChart = new Chart(ctx, {
         type: 'horizontalBar',
@@ -1786,7 +1788,8 @@ function renderStatsTreners() {
             handleError(err);
         }
     })
-    ctx.height = labels.length * 15;
+    labels = cutLabels(labels)
+    ctx.height = labels.length * 25;
     trenersChart = new Chart(ctx, {
         type: 'horizontalBar',
         data: {
@@ -1904,7 +1907,7 @@ function renderStatsPayments() {
             handleError(err);
         }
     })
-    
+    labels = cutLabels(labels)
     ctx.height = labels.length * 15;
     paysChart = new Chart(ctx, {
         type: 'horizontalBar',
@@ -1933,6 +1936,16 @@ function renderStatsPayments() {
             }
         }
     });
+}
+
+function cutLabels(labels){
+    labels = labels.map(l => {
+        let names = l.split(" ")
+        let result = names[0]
+        if (names[1]) result += " "+names[1]
+        return result
+    } )
+    return labels;
 }
 
 function handleError(err) {

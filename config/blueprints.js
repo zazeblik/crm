@@ -146,9 +146,8 @@ module.exports.blueprints = {
         queryOptions.valuesToSet = (function getValuesToSet(){
           var values = _.omit(req.allParams(), 'id');
           for (var value in values){
-            if ((dates.includes(value) || datetimes.includes(value)) && (values[value] == '' || values[value] == 'NaN')) {
-              values[value] = null;
-            }
+            if ((dates.includes(value) || datetimes.includes(value)) && (values[value] == '' || values[value] == 'NaN')) values[value] = null;
+            if (value == 'partner' && values[value] == '') values[value] = null;
           }
           if (typeof values[Model.primaryKey] !== 'undefined' && values[Model.primaryKey] !== queryOptions.criteria.where[Model.primaryKey]) {
             req._sails.log.warn('Cannot change primary key via update blueprint; ignoring value sent for `' + Model.primaryKey + '`');
