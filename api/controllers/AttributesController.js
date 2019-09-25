@@ -699,91 +699,99 @@ module.exports = {
 
             var abon_pays = {};
             for (var i = 0; i < trains.length; i++){
-                var train_memebers = trains[i].members;
-                if (groups[trains[i].group].type == "групповая"){
+                let train = trains[i];
+                var train_memebers = train.members;
+                if (groups[train.group].type == "групповая"){
                     for (var j=0; j < train_memebers.length; j++){
-                        var member_id = train_memebers[j].id;
+                        let train_memeber = train_memebers[j]
+                        var member_id = train_memeber.id;
                         for (var k = 0; k < payments.length; k++){
-                            if (payments[k].group == null) continue;
-                            var payment_group_id = payments[k].group.id
-                            if (payments[k].payer == member_id && payment_group_id == trains[i].group && payments[k].starts <= trains[i].datetime && payments[k].ends >= trains[i].datetime_end){
-                                if (payments[k].type == "разовый"){
+                            let payment = payments[k];
+                            if (payment.group == null) continue;
+                            var payment_group_id = payment.group.id
+                            if (payment.payer == member_id && payment_group_id == train.group && payment.starts <= train.datetime && payment.ends >= train.datetime_end){
+                                if (payment.type == "разовый"){
                                     if (groups[payment_group_id].once_sum){
-                                        if (!once_pays[train_memebers[j].id]) once_pays[train_memebers[j].id] = {}
-                                        if (!once_pays[train_memebers[j].id][payment_group_id]) once_pays[train_memebers[j].id][payment_group_id] = []
-                                        once_pays[train_memebers[j].id][payment_group_id].push({
-                                            datetime: trains[i].datetime,
-                                            datetime_end: trains[i].datetime_end
+                                        if (!once_pays[train_memeber.id]) once_pays[train_memeber.id] = {}
+                                        if (!once_pays[train_memeber.id][payment_group_id]) once_pays[train_memeber.id][payment_group_id] = []
+                                        once_pays[train_memeber.id][payment_group_id].push({
+                                            datetime: train.datetime,
+                                            datetime_end: train.datetime_end
                                         })
                                     }
                                 }
-                                if (payments[k].type == "абонемент"){
-                                    if (payments[k].count){
-                                        if (!abon_pays[train_memebers[j].id]) abon_pays[train_memebers[j].id] = {}
-                                        if (!abon_pays[train_memebers[j].id][payment_group_id]) abon_pays[train_memebers[j].id][payment_group_id] = []
+                                if (payment.type == "абонемент"){
+                                    if (payment.count){
+                                        if (!abon_pays[train_memeber.id]) abon_pays[train_memeber.id] = {}
+                                        if (!abon_pays[train_memeber.id][payment_group_id]) abon_pays[train_memeber.id][payment_group_id] = []
                                         var tmp_obj = {
-                                            starts: payments[k].starts,
-                                            ends: payments[k].ends,
-                                            count: payments[k].count
+                                            starts: payment.starts,
+                                            ends: payment.ends,
+                                            count: payment.count
                                         }
                                         var finded = false
-                                        for (var m = 0; m < abon_pays[train_memebers[j].id][payment_group_id].length; m++){
-                                            if (JSON.stringify(abon_pays[train_memebers[j].id][payment_group_id][m]) == JSON.stringify(tmp_obj)) finded = true
+                                        for (var m = 0; m < abon_pays[train_memeber.id][payment_group_id].length; m++){
+                                            if (JSON.stringify(abon_pays[train_memeber.id][payment_group_id][m]) == JSON.stringify(tmp_obj)){
+                                                finded = true;
+                                                break;
+                                            } 
                                         }
-                                        if (!finded) abon_pays[train_memebers[j].id][payment_group_id].push(tmp_obj)
+                                        if (!finded) abon_pays[train_memeber.id][payment_group_id].push(tmp_obj)
                                     }
                                 }                           
                             }                           
                         }
-                        if (!group_dates[train_memebers[j].id]) group_dates[train_memebers[j].id] = {}
-                        if (!group_dates[train_memebers[j].id][trains[i].group]) group_dates[train_memebers[j].id][trains[i].group] = []
-                        var pay_date = new Date(trains[i].datetime)
+                        if (!group_dates[train_memeber.id]) group_dates[train_memeber.id] = {}
+                        if (!group_dates[train_memeber.id][train.group]) group_dates[train_memeber.id][train.group] = []
+                        var pay_date = new Date(train.datetime)
                         pay_date = new Date(pay_date.getFullYear(), pay_date.getMonth(), 1).getTime()
                         var end_date = new Date(pay_date)
                         end_date.setMonth(end_date.getMonth()+1)
                         end_date = end_date.getTime()
                         var dates_finded = false 
-                        var cur_group_dates = group_dates[train_memebers[j].id][trains[i].group];
+                        var cur_group_dates = group_dates[train_memeber.id][train.group];
                         for (var k = 0; k < cur_group_dates.length; k++){
                             if (cur_group_dates[k].datetime == pay_date && cur_group_dates[k].datetime_end == end_date){
-                                dates_finded = true
+                                dates_finded = true;
+                                break;
                             }
                         }
                         if (!dates_finded){
-                            group_dates[train_memebers[j].id][trains[i].group].push({
+                            group_dates[train_memeber.id][train.group].push({
                                 datetime: pay_date,
                                 datetime_end: end_date
                             })
                         }                            
                     }
                 }
-                if (groups[trains[i].group].type == "индивидуальная"){
+                if (groups[train.group].type == "индивидуальная"){
                     for (var j=0; j < train_memebers.length; j++){
-                        if (!personal_dates[train_memebers[j].id]) personal_dates[train_memebers[j].id] = {}
-                        if (!personal_dates[train_memebers[j].id][trains[i].group]) personal_dates[train_memebers[j].id][trains[i].group] = []
-                        personal_dates[train_memebers[j].id][trains[i].group].push({
-                            datetime: trains[i].datetime,
-                            datetime_end: trains[i].datetime_end
+                        let train_memeber = train_memebers[j]
+                        if (!personal_dates[train_memeber.id]) personal_dates[train_memeber.id] = {}
+                        if (!personal_dates[train_memeber.id][train.group]) personal_dates[train_memeber.id][train.group] = []
+                        personal_dates[train_memeber.id][train.group].push({
+                            datetime: train.datetime,
+                            datetime_end: train.datetime_end
                         })
                     }
                 }
-                if (groups[trains[i].group].type == "сборы"){
-                    if (!sbor_dates[trains[i].group]){
-                        sbor_dates[trains[i].group] = { 
-                            starts: trains[i].datetime,
-                            ends: trains[i].datetime_end
+                if (groups[train.group].type == "сборы"){
+                    if (!sbor_dates[train.group]){
+                        sbor_dates[train.group] = { 
+                            starts: train.datetime,
+                            ends: train.datetime_end
                         }
                     } else {
-                        if (trains[i].datetime < sbor_dates[trains[i].group].starts){
-                            sbor_dates[trains[i].group].starts = trains[i].datetime;
+                        if (train.datetime < sbor_dates[train.group].starts){
+                            sbor_dates[train.group].starts = train.datetime;
                         }
-                        if (trains[i].datetime_end > sbor_dates[trains[i].group].ends){
-                            sbor_dates[trains[i].group].ends = trains[i].datetime_end;
+                        if (train.datetime_end > sbor_dates[train.group].ends){
+                            sbor_dates[train.group].ends = train.datetime_end;
                         } 
                     }
                 }
-                if (!group_trains[trains[i].group]) group_trains[trains[i].group] = []; 
-                group_trains[trains[i].group].push(trains[i])
+                if (!group_trains[train.group]) group_trains[train.group] = []; 
+                group_trains[train.group].push(train)
             }
             for (var person_id in once_pays){
                 var person_once_pays = once_pays[person_id]
@@ -802,15 +810,17 @@ module.exports = {
                             }
                         }
                         for (var j=0; j < trains.length; j++){
-                            var train_memebers = trains[j].members 
+                            let train = trains[j];
+                            var train_memebers = train.members 
                             for (var k=0; k < train_memebers.length; k++){
-                                if (train_memebers[k].id == person_id && trains[j].group == group_id && trains[j].datetime >= months_start  && trains[j].datetime_end <= months_end){
+                                let train_memeber = train_memebers[k];
+                                if (train_memeber.id == person_id && train.group == group_id && train.datetime >= months_start  && train.datetime_end <= months_end){
                                     if (!once_trains[person_id]) once_trains[person_id] = {}
                                     if (!once_trains[person_id][group_id]) once_trains[person_id][group_id] = []
                                     var tmp_obj = {
-                                        train: trains[j].id,  
-                                        datetime: trains[j].datetime,
-                                        datetime_end: trains[j].datetime_end,
+                                        train: train.id,  
+                                        datetime: train.datetime,
+                                        datetime_end: train.datetime_end,
                                         once: true
                                     }
                                     once_trains[person_id][group_id].push(tmp_obj)
@@ -830,29 +840,32 @@ module.exports = {
                         months_end.setSeconds(months_end.getSeconds()-1)
                         months_end = months_end.getMonth()
                         for (var j=group_dates[person_id][group_id].length-1; j >= 0; j--){
-                            
-                            var start_month = new Date(group_dates[person_id][group_id][j].datetime).getMonth() 
-                            var end_month = new Date(group_dates[person_id][group_id][j].datetime_end).getMonth() 
+                            let group_trains_date_ranges = group_dates[person_id][group_id][j];
+                            var start_month = new Date(group_trains_date_ranges.datetime).getMonth() 
+                            var end_month = new Date(group_trains_date_ranges.datetime_end).getMonth() 
                             if ((start_month >= months_start && start_month <= months_end)||(end_month >= months_start && end_month <= months_end)){
                                 group_dates[person_id][group_id].splice(j,1)
                             }
                         }
                     }
                     for (var i = 0; i < person_abon_pays[group_id].length; i++){
-                        var months_start = new Date(person_abon_pays[group_id][i].starts).getMonth()
-                        var months_end = new Date(person_abon_pays[group_id][i].ends)
+                        let person_abon_pays_grouppay = person_abon_pays[group_id][i];
+                        var months_start = new Date(person_abon_pays_grouppay.starts).getMonth()
+                        var months_end = new Date(person_abon_pays_grouppay.ends)
                         months_end.setSeconds(months_end.getSeconds()-1)
                         months_end = months_end.getMonth()
                         var tmp = 0;
                         var in_abon_range_count = 0
-                        if (person_abon_pays[group_id][i].count) in_abon_range_count = person_abon_pays[group_id][i].count
+                        if (person_abon_pays_grouppay.count) in_abon_range_count = person_abon_pays_grouppay.count
                         
                         for (var j=0; j < trains.length; j++){
-                            var train_memebers = trains[j].members 
-                            var start_month = new Date(trains[j].datetime).getMonth() 
-                            var end_month = new Date(trains[j].datetime_end).getMonth() 
+                            let train = trains[j]
+                            var train_memebers = train.members 
+                            var start_month = new Date(train.datetime).getMonth() 
+                            var end_month = new Date(train.datetime_end).getMonth() 
                             for (var k=0; k < train_memebers.length; k++){
-                                if (train_memebers[k].id == person_id && trains[j].group == group_id && ((start_month >= months_start && start_month <= months_end)||(end_month >= months_start && end_month <= months_end)) && person_abon_pays[group_id][i].count){
+                                let train_memeber = train_memebers[k]
+                                if (train_memeber.id == person_id && train.group == group_id && ((start_month >= months_start && start_month <= months_end)||(end_month >= months_start && end_month <= months_end)) && person_abon_pays_grouppay.count){
                                     if (!once_trains[person_id]) once_trains[person_id] = {}
                                     if (!once_trains[person_id][group_id]) once_trains[person_id][group_id] = []
                                     for (var m=once_trains[person_id][group_id].length-1 ; m >= 0; m--){
@@ -861,20 +874,21 @@ module.exports = {
                                         }
                                     }
                                     
-                                    if (!(trains[j].datetime >= person_abon_pays[group_id][i].starts && trains[j].datetime_end <= person_abon_pays[group_id][i].ends)){
+                                    if (!(train.datetime >= person_abon_pays_grouppay.starts && train.datetime_end <= person_abon_pays_grouppay.ends)){
                                         in_abon_range_count--
                                     } 
                                     if (tmp >= in_abon_range_count){
                                         var train_finded = false
                                         var tmp_obj = {
-                                            train: trains[j].id,  
-                                            datetime: trains[j].datetime,
-                                            datetime_end: trains[j].datetime_end,
+                                            train: train.id,  
+                                            datetime: train.datetime,
+                                            datetime_end: train.datetime_end,
                                             once: true
                                         }
                                         for (var m=0; m<once_trains[person_id][group_id].length; m++){
                                             if (once_trains[person_id][group_id][m].train == tmp_obj.train){
-                                                train_finded = true
+                                                train_finded = true;
+                                                break;
                                             }
                                         }
                                         if (!train_finded) once_trains[person_id][group_id].push(tmp_obj)                                
@@ -903,101 +917,102 @@ module.exports = {
                 var group_members = groups[group_id].members;   
                 if (!group_names[group_id]) group_names[group_id] = groups[group_id].toView;
                 for (var i=0; i<group_members.length; i++){
-                    if (!result[group_members[i].id]) result[group_members[i].id] = {} 
-                    if (!persons[group_members[i].id]) persons[group_members[i].id] = group_members[i].toView;
-                    result[group_members[i].id][group_id] = 0
+                    let group_member = group_members[i];
+                    if (!result[group_member.id]) result[group_member.id] = {} 
+                    if (!persons[group_member.id]) persons[group_member.id] = group_member.toView;
+                    result[group_member.id][group_id] = 0
                     if (!groups[group_id].sum) continue;
-                    if (groups[group_id].type == "групповая" && group_dates[group_members[i].id] && group_dates[group_members[i].id][group_id] && groups[group_id].sum){
-                        result[group_members[i].id][group_id] = group_dates[group_members[i].id][group_id].length * groups[group_id].sum 
-                        if (once_trains[group_members[i].id] && once_trains[group_members[i].id][group_id] && once_trains[group_members[i].id][group_id].length && groups[group_id].once_sum) {
-                            result[group_members[i].id][group_id] -= once_trains[group_members[i].id][group_id].length * groups[group_id].sum
-                            result[group_members[i].id][group_id] += once_trains[group_members[i].id][group_id].length * groups[group_id].once_sum
+                    if (groups[group_id].type == "групповая" && group_dates[group_member.id] && group_dates[group_member.id][group_id] && groups[group_id].sum){
+                        result[group_member.id][group_id] = group_dates[group_member.id][group_id].length * groups[group_id].sum 
+                        if (once_trains[group_member.id] && once_trains[group_member.id][group_id] && once_trains[group_member.id][group_id].length && groups[group_id].once_sum) {
+                            result[group_member.id][group_id] -= once_trains[group_member.id][group_id].length * groups[group_id].sum
+                            result[group_member.id][group_id] += once_trains[group_member.id][group_id].length * groups[group_id].once_sum
                         }
-                        for (var j=0; j<group_dates[group_members[i].id][group_id].length; j++){
-                            if (!group_dates[group_members[i].id][group_id][j].once){
+                        for (var j=0; j<group_dates[group_member.id][group_id].length; j++){
+                            if (!group_dates[group_member.id][group_id][j].once){
                                 var finded = false;
                                 for (var k=0; k<group_trains[group_id].length; k++){
-                                    if ((group_trains[group_id][k].datetime >= group_dates[group_members[i].id][group_id][j].datetime) && (group_trains[group_id][k].datetime_end <= group_dates[group_members[i].id][group_id][j].datetime_end)){
+                                    if ((group_trains[group_id][k].datetime >= group_dates[group_member.id][group_id][j].datetime) && (group_trains[group_id][k].datetime_end <= group_dates[group_member.id][group_id][j].datetime_end)){
                                         for (var m=0; m < group_trains[group_id][k].members.length; m++){
-                                            if (group_trains[group_id][k].members[m].id == group_members[i].id) finded = true 
+                                            if (group_trains[group_id][k].members[m].id == group_member.id) finded = true;
                                         }
                                     }
                                 }
-                                if (!finded) result[group_members[i].id][group_id] -= groups[group_id].sum
+                                if (!finded) result[group_member.id][group_id] -= groups[group_id].sum
                             }                                    
                         }  
                     }
                     if (groups[group_id].type == "сбор денег"){
-                        result[group_members[i].id][group_id] = groups[group_id].sum;
+                        result[group_member.id][group_id] = groups[group_id].sum;
                     }
-                    if (groups[group_id].type == "индивидуальная" && personal_dates[group_members[i].id] && personal_dates[group_members[i].id][group_id] && groups[group_id].sum){
-                        result[group_members[i].id][group_id] = personal_dates[group_members[i].id][group_id].length * groups[group_id].sum;                         
+                    if (groups[group_id].type == "индивидуальная" && personal_dates[group_member.id] && personal_dates[group_member.id][group_id] && groups[group_id].sum){
+                        result[group_member.id][group_id] = personal_dates[group_member.id][group_id].length * groups[group_id].sum;                         
                     }
                     if (groups[group_id].type == "сборы" && sbor_dates[group_id] && groups[group_id].sum){
-                        result[group_members[i].id][group_id] = groups[group_id].sum
+                        result[group_member.id][group_id] = groups[group_id].sum
                         var finded = false;
                         for (var k=0; k<group_trains[group_id].length; k++){
                             if ((group_trains[group_id][k].datetime >= sbor_dates[group_id].starts) && (group_trains[group_id][k].datetime_end <= sbor_dates[group_id].ends)){
                                 for (var m=0; m < group_trains[group_id][k].members.length; m++){
-                                    if (group_trains[group_id][k].members[m].id == group_members[i].id) finded = true 
+                                    if (group_trains[group_id][k].members[m].id == group_member.id) finded = true 
                                 }
                             }
                         }
-                        if (!finded) result[group_members[i].id][group_id] -= groups[group_id].sum                          
+                        if (!finded) result[group_member.id][group_id] -= groups[group_id].sum                          
                     }
                 }
             }
             for (var i=0; i < payments.length; i++){
-                if (payments[i].group == null) continue;
-                var payment_group_id = payments[i].group.id
-                if (payments[i].payer){
+                let payment = payments[i];
+                if (payment.group == null) continue;
+                var payment_group_id = payment.group.id
+                if (payment.payer){
                     if (groups[payment_group_id].type == "сбор денег"){
-                        result[payments[i].payer][payment_group_id] -= payments[i].sum
+                        result[payment.payer][payment_group_id] -= payment.sum
                     }
                     if (groups[payment_group_id].type == "групповая"){
-                        if (group_dates[payments[i].payer] && group_dates[payments[i].payer][payment_group_id] && group_dates[payments[i].payer][payment_group_id].length){
-                            for (var j=0; j<group_dates[payments[i].payer][payment_group_id].length; j++){
-                                if (payments[i].starts <= group_dates[payments[i].payer][payment_group_id][j].datetime && payments[i].ends >= group_dates[payments[i].payer][payment_group_id][j].datetime_end){
-                                    if (!result[payments[i].payer][payment_group_id]) result[payments[i].payer][payment_group_id] = 0;
-                                    if (!group_dates[payments[i].payer][payment_group_id][j].once){
-                                        result[payments[i].payer][payment_group_id] -= groups[payment_group_id].sum
+                        if (group_dates[payment.payer] && group_dates[payment.payer][payment_group_id] && group_dates[payment.payer][payment_group_id].length){
+                            for (var j=0; j<group_dates[payment.payer][payment_group_id].length; j++){
+                                if (payment.starts <= group_dates[payment.payer][payment_group_id][j].datetime && payment.ends >= group_dates[payment.payer][payment_group_id][j].datetime_end){
+                                    if (!result[payment.payer][payment_group_id]) result[payment.payer][payment_group_id] = 0;
+                                    if (!group_dates[payment.payer][payment_group_id][j].once){
+                                        result[payment.payer][payment_group_id] -= groups[payment_group_id].sum
                                     } else {
-                                        result[payments[i].payer][payment_group_id] -= groups[payment_group_id].once_sum
+                                        result[payment.payer][payment_group_id] -= groups[payment_group_id].once_sum
                                     }
-                                    
                                 }
                             }
                         } else {
-                            if (!result[payments[i].payer]) result[payments[i].payer] = {};
-                            if (!result[payments[i].payer][payment_group_id]) result[payments[i].payer][payment_group_id] = 0;
-                            result[payments[i].payer][payment_group_id] -= payments[i].sum
+                            if (!result[payment.payer]) result[payment.payer] = {};
+                            if (!result[payment.payer][payment_group_id]) result[payment.payer][payment_group_id] = 0;
+                            result[payment.payer][payment_group_id] -= payment.sum
                         }               
                     }
                     if (groups[payment_group_id].type == "индивидуальная"){
-                        if (personal_dates[payments[i].payer] && personal_dates[payments[i].payer][payment_group_id] && personal_dates[payments[i].payer][payment_group_id].length){
-                            for (var j=0; j<personal_dates[payments[i].payer][payment_group_id].length; j++){
-                                if (payments[i].starts <= personal_dates[payments[i].payer][payment_group_id][j].datetime && payments[i].ends >= personal_dates[payments[i].payer][payment_group_id][j].datetime_end){
-                                    if (!result[payments[i].payer][payment_group_id]) result[payments[i].payer][payment_group_id] = 0;
-                                    result[payments[i].payer][payment_group_id] -= groups[payment_group_id].sum
+                        if (personal_dates[payment.payer] && personal_dates[payment.payer][payment_group_id] && personal_dates[payment.payer][payment_group_id].length){
+                            for (var j=0; j<personal_dates[payment.payer][payment_group_id].length; j++){
+                                if (payment.starts <= personal_dates[payment.payer][payment_group_id][j].datetime && payment.ends >= personal_dates[payment.payer][payment_group_id][j].datetime_end){
+                                    if (!result[payment.payer][payment_group_id]) result[payment.payer][payment_group_id] = 0;
+                                    result[payment.payer][payment_group_id] -= groups[payment_group_id].sum
                                 }
                             }
                         } else {
-                            if (!result[payments[i].payer]) result[payments[i].payer] = {};
-                            if (!result[payments[i].payer][payment_group_id]) result[payments[i].payer][payment_group_id] = 0;
-                            result[payments[i].payer][payment_group_id] -= payments[i].sum
+                            if (!result[payment.payer]) result[payment.payer] = {};
+                            if (!result[payment.payer][payment_group_id]) result[payment.payer][payment_group_id] = 0;
+                            result[payment.payer][payment_group_id] -= payment.sum
                         }                    
                     }
                     if (groups[payment_group_id].type == "сборы"){
                         if (sbor_dates[payment_group_id]) {
-                            if (payments[i].starts <= sbor_dates[payment_group_id].starts && payments[i].ends >= sbor_dates[payment_group_id].ends){
-                                if (!result[payments[i].payer]) result[payments[i].payer] = {};
-                                if (!result[payments[i].payer][payment_group_id]) result[payments[i].payer][payment_group_id] = 0;
-                                result[payments[i].payer][payment_group_id] -= groups[payment_group_id].sum
+                            if (payment.starts <= sbor_dates[payment_group_id].starts && payment.ends >= sbor_dates[payment_group_id].ends){
+                                if (!result[payment.payer]) result[payment.payer] = {};
+                                if (!result[payment.payer][payment_group_id]) result[payment.payer][payment_group_id] = 0;
+                                result[payment.payer][payment_group_id] -= groups[payment_group_id].sum
                             }
                         } else {
-                            if (!result[payments[i].payer]) result[payments[i].payer] = {};
-                            if (!result[payments[i].payer][payment_group_id]) result[payments[i].payer][payment_group_id] = 0;
-                            result[payments[i].payer][payment_group_id] -= payments[i].sum
+                            if (!result[payment.payer]) result[payment.payer] = {};
+                            if (!result[payment.payer][payment_group_id]) result[payment.payer][payment_group_id] = 0;
+                            result[payment.payer][payment_group_id] -= payment.sum
                         }                    
                     }
                 }
@@ -1027,7 +1042,7 @@ module.exports = {
             return res.send(ordered);
         } catch (error) { 
             console.log(error);
-            return res.status(400).send(error);
+            return res.status(400).send(error); 
         }
     },
     get_words: function(req, res){
