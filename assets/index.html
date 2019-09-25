@@ -59,8 +59,12 @@
                         <li id="pays_menu_item" class="nav-item">
                             <a class="nav-link text-light" href="javascript:void(0)">Платежи</a>
                         </li>
-                        <li id="plans_menu_item" class="nav-item">
-                            <a class="nav-link text-light" href="javascript:void(0)">Планирование</a>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link text-light dropdown-toggle" data-toggle="dropdown" href="javascript:void(0)" role="button" aria-haspopup="true" aria-expanded="false">Планирование</a>
+                            <div class="dropdown-menu">
+                                <a id="plans_menu_item" class="dropdown-item" href="javascript:void(0)">Планирование</a>
+                                <a id="trains_generate_menu_item" class="dropdown-item" href="javascript:void(0)">Создать тренировки на месяц</a>
+                            </div>
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link text-light dropdown-toggle" data-toggle="dropdown" href="javascript:void(0)" role="button" aria-haspopup="true" aria-expanded="false">Отчёты</a>
@@ -176,7 +180,7 @@
             <h5 id="plans_title">Планирование</h5>
             <div class="container-fluid">
                 <div id="birthday_alert">
-                </div>
+                </div>              
                 <div class="row calendars">
                     <div id="plans_calendar" class="col-md-8"></div>
                     <div id="plans_day" class="col-md-4"></div>

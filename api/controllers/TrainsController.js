@@ -19,6 +19,9 @@ module.exports = {
         } catch (error) {
             return res.status(400).send(error);
         }
+    },
+    generate_trains: async function(req, res){
+        await sails.helpers.trainsGenerate();
+        return res.ok();        
     }
 };
-

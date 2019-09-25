@@ -2790,6 +2790,18 @@ function getPlansEvents(start, end, timezone, callback) {
     });
 }
 
+function generateMonthTrains(){
+    $.ajax({
+        url: "/trains/generate_trains",
+        async: false,
+        success: function(){
+            alert("Тренировки на оставшися месяц успешно созданы")
+        },
+        error: function (err) { handleError(err) }
+    })
+    showPlans();
+}
+
 function removePlansTrain(id) {
     $.ajax({
         url: "/trains/" + id,
@@ -2906,6 +2918,7 @@ function createHandlers() {
     $("#stats_members_menu_item").on("click", showStatsMembers)
     $("#stats_treners_menu_item").on("click", showStatsTreners)
     $("#stats_payments_menu_item").on("click", showStatsPayments) 
+    $("#trains_generate_menu_item").on("click", generateMonthTrains) 
     $("#save_train_member_btn").on("click", saveTrainJournalAddMember)
     $("#save_group_member_btn").on("click", saveGroupJournalAddMember)
     $("#save_member_to_train_btn").on("click", saveMemberToTrain)
