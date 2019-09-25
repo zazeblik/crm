@@ -36,7 +36,6 @@ module.exports = {
           start_date.setMinutes(start_date.getMinutes() + groups[i].duration);
           train.datetime_end = start_date.getTime();
           try {
-            console.log(train);
             await Trains.create(train);
           } catch (error) {}
         }
