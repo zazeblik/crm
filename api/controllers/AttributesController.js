@@ -1081,8 +1081,8 @@ module.exports = {
             let group = await Groups.findOne(group_id).populate("members")
             let group_members = group.members;
             let pays = await Payments.find({ where: { group: group_id, or: [{ starts: { "<": end } }, { ends: { ">=": start } }] } }).sort("starts ASC")
-            let pays_min_starts = Math.min(...pays.map(p => p.starts));
-            let pays_max_ends = Math.max(...pays.map(p => p.ends));
+            let pays_min_starts = pays.length == 0 ? start : Math.min(...pays.map(p => p.starts));
+            let pays_max_ends = pays.length == 0 ? end : Math.max(...pays.map(p => p.ends));
             let in_pays_trains = await Trains.find({ group: group_id, datetime: { ">=": pays_min_starts, "<": pays_max_ends } }).sort("datetime ASC").populate("members")
             
             let result = {}
