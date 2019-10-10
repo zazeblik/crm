@@ -1041,7 +1041,7 @@ function autoCompleteDatesAndSum(id, model) {
         url: "/groups/" + id,
         async: false,
         data: {
-            populate: "updater"
+            populate: "members"
         },
         success: function (group) {
             cur_group = group;
@@ -1084,12 +1084,17 @@ function autoCompleteDatesAndSum(id, model) {
                 }
             }
 
+            let cur_group_sum = cur_group.sum;
+            if (cur_group.type == "индивидуальная" && cur_group.members.length) {
+                cur_group_sum = cur_group_sum/cur_group.members.length;
+            }
             if ($("#modal_body").attr("data-id")) {
                 if (!$("input[name='sum']").val()) {
-                    $("input[name='sum']").val(cur_group.sum)
+                    $("input[name='sum']").val(cur_group_sum)
                 }
             } else {
-                $("input[name='sum']").val(cur_group.sum)
+
+                $("input[name='sum']").val(cur_group_sum)
             }
         }
     } catch (error) {
