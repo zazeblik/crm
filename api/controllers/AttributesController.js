@@ -269,27 +269,28 @@ module.exports = {
             trains = trains.filter(t => payment_group_by_id[t.group].members.length);
             let pays = await Payments
                 .find({ where: { group: trains_groups, or: [{ starts: { "<": end } }, { ends: { ">=": start } }] } })
-                .sort("starts ASC");
+                .sort("type DESC");
 
             let pays_min_starts = pays.length ? Math.min(...pays.map(p => p.starts)) : start;
             let pays_max_ends = pays.length ? Math.max(...pays.map(p => p.ends)) : end;
             let in_pays_trains = await Trains.find({ group: trains_groups, datetime: { ">=": pays_min_starts, "<": pays_max_ends } }).sort("datetime ASC").populate("members")
-            trains.forEach(async train => {
+            trains.forEach(train => {
                 let train_visits = []
                 let train_group = train.group;
                 let train_memebers_ids = train.members.map(tm => tm.id)
                 let train_group_members = payment_group_by_id[train_group].members;
-                train_group_members.forEach(async train_group_member => {
+                train_group_members.forEach(train_group_member => {
                     let person_pays = pays.filter(p => p.payer == train_group_member.id && p.group == train.group);
                     let person_in_pays_trains = in_pays_trains.filter(ipt => {
                         let ipt_members = ipt.members.map(iptm => iptm.id)
                         return ipt.group == train.group && ipt_members.includes(train_group_member.id)
                     })
+                    const payed_train_ids = trains.filter(t => t.payed).map(t => t.id);
                     train_visits.push({
                         visit: train_memebers_ids.includes(train_group_member.id),
                         name: train_group_member.toView,
-                        payment: getPaymentSumOrStatus(train, train_group_member, person_pays, person_in_pays_trains, false ),
-                        payment_sum: getPaymentSumOrStatus(train, train_group_member, person_pays, person_in_pays_trains, true )
+                        payment: getPaymentSumOrStatus(train, train_group_member, person_pays, person_in_pays_trains, false, payed_train_ids ),
+                        payment_sum: getPaymentSumOrStatus(train, train_group_member, person_pays, person_in_pays_trains, true, payed_train_ids )
                     })
                 });
                 result.push({
@@ -462,9 +463,9 @@ module.exports = {
             let trains = await Trains.find({ group: group_id, datetime: { ">=": start, "<": end } }).sort("datetime ASC").populate("members")
             let group = await Groups.findOne(group_id).populate("members")
             let group_members = group.members;
-            let pays = await Payments.find({ where: { group: group_id, or: [{ starts: { "<": end } }, { ends: { ">=": start } }] } }).sort("starts ASC")
-            let pays_min_starts = Math.min(...pays.map(p => p.starts));
-            let pays_max_ends = Math.max(...pays.map(p => p.ends));
+            let pays = await Payments.find({ where: { group: group_id, or: [{ starts: { "<": end } }, { ends: { ">=": start } }] } }).sort("type DESC")
+            let pays_min_starts = pays.length ? Math.min(...pays.map(p => p.starts)) : start;
+            let pays_max_ends = pays.length ? Math.max(...pays.map(p => p.ends)) : end;
             let in_pays_trains = await Trains.find({ group: group_id, datetime: { ">=": pays_min_starts, "<": pays_max_ends } }).sort("datetime ASC").populate("members")
             let result = {}
             for (let i = 0; i < group_members.length; i++) {
@@ -475,15 +476,16 @@ module.exports = {
                 result[person_name] = {}
                 let total_visits = 0
                 for (let j = 0; j < trains.length; j++) {
-                    const train = trains[j];
+                    let train = trains[j];
                     let train_memebers = train.members
                     let train_memebers_ids = train_memebers.map((tm)=>tm.id)
                     let train_start = train.datetime;
                     let is_visit = train_memebers_ids.includes(person_id)
                     if (is_visit) total_visits++;
+                    const payed_train_ids = trains.filter(t => t.payed).map(t => t.id);
                     result[person_name][train_start] = {
                         visit: is_visit,
-                        payment: getPaymentSumOrStatus( train, person, person_pays, in_pays_trains, false)
+                        payment: getPaymentSumOrStatus( train, person, person_pays, in_pays_trains, false, payed_train_ids)
                     };
                 }
                 result[person_name]["Всего"] = total_visits
@@ -688,32 +690,39 @@ function clone(obj) {
     return copy;
 }
 
-function getPaymentSumOrStatus( current_train, person, pays, trains, isSum ){
+function getPaymentSumOrStatus( current_train, person, pays, trains, isSum, payed_train_ids ){
     if (!pays.length) return isSum ? 0 : false;
     let train_start = current_train.datetime;
     let train_end = current_train.datetime_end;
     let abon_trains = []
     let abon_pays = [];
+    //let not_visited_abon_trains = []
     for (let i = 0; i < pays.length; i++) {
         const pay = pays[i];
         let train_in_pay = (train_start >= pay.starts) && (train_end <= pay.ends)
         if (!train_in_pay) continue;
-        if (pay.type != "абонемент") return isSum ? pay.sum : true;
-        if (!pay.count) return isSum ? pay.sum : true;
+        if (pay.type != "абонемент" || !pay.count) {
+            current_train.payed = true;
+            return isSum ? pay.sum : true;
+        }
         abon_pays.push(pay);
+        
         trains.forEach(train => {
             let train_memebers = train.members
             let train_memebers_ids = train_memebers.map((tm)=>tm.id)
             let is_visit = train_memebers_ids.includes(person.id)
             let train_in_pay = (train.datetime >= pay.starts) && (train.datetime_end <= pay.ends)
-            if (train_in_pay && is_visit) {
+            if (train_in_pay && is_visit && !payed_train_ids.includes(train.id)) {
+                //if (!is_visit) not_visited_abon_trains.push(train.id)
                 abon_trains.push(train.id)
             }
         });
     }
     for (let i = 0; i < abon_pays.length; i++) {
         const abon_pay = abon_pays[i];
-        const trainIndexLessThanPaysCount = abon_trains.indexOf(current_train.id) >= 0 && abon_pay.count - 1 >= abon_trains.indexOf(current_train.id);
+        const max_index = abon_pay.count - 1;
+
+        const trainIndexLessThanPaysCount = abon_trains.indexOf(current_train.id) >= 0 && max_index >= abon_trains.indexOf(current_train.id);
         return isSum ? (trainIndexLessThanPaysCount ? abon_pay.sum : 0) : trainIndexLessThanPaysCount;
     }
     return isSum ? 0 : false;
