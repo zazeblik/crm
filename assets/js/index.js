@@ -459,7 +459,7 @@ function addModel(from_model, from_values) {
                     format: 'LT'
                 })
             }
-            correctForm(model, from_values);
+            if (!$("#modal_body").attr("data-id")) correctForm(model, from_values);
         },
         error: function (err) {
             handleError(err)
@@ -481,6 +481,7 @@ function correctForm(model, from_values){
         }
     }
     if (model == "groups") {
+        autoHideSchedule($("select[name='type']").val())
         $("select[name='type']").unbind("change");
         $("select[name='type']").on("change", function () {
             autoHideSchedule($(this).val())
@@ -584,8 +585,8 @@ function showEditModel(id, from_model) {
                 }
                 $("select[type=collection],select[type=models]").multiselect('refresh')
                 $("#modal_title").text(toRU(model) + ": редактирование")
-                correctForm(model, data)
             })
+            correctForm(model, data)
         },
         error: function (err) {
             handleError(err)
@@ -919,10 +920,14 @@ function autoHideCount(type){
 function autoHideTypes(id) {
     for (var i = 0; i < last_models.length; i++){
         if (last_models[i].id == id){
-            if (last_models[i].type != "групповая") {
-                $("label[for='prop_type']").parent().hide();
-            } else {
+            if (last_models[i].type == "групповая") {
                 $("label[for='prop_type']").parent().show();
+                $("#prop_type option:nth-child(2)").show();
+            } else if (last_models[i].type == "индивидуальная"){
+                $("label[for='prop_type']").parent().show();
+                $("#prop_type option:nth-child(2)").hide();
+            } else {
+                $("label[for='prop_type']").parent().hide();
             }
         }
     }
@@ -934,9 +939,12 @@ function autoHideSchedule(value) {
             $("label[for='prop_time'],label[for='prop_schedule'],label[for='prop_once_sum'],label[for='prop_hall'],label[for='prop_duration'],label[for='prop_trener'],label[for='prop_trains']").parent().show();
             break;
         case "индивидуальная":
-        case "сборы":
             $("label[for='prop_once_sum']").parent().hide();
             $("label[for='prop_time'],label[for='prop_schedule'],label[for='prop_hall'],label[for='prop_duration'],label[for='prop_trener'],label[for='prop_trains']").parent().show();
+            break;
+        case "сборы":
+            $("label[for='prop_once_sum'],label[for='prop_schedule']").parent().hide();
+            $("label[for='prop_time'],label[for='prop_hall'],label[for='prop_duration'],label[for='prop_trener'],label[for='prop_trains']").parent().show();
             break;
         case "сбор денег":
             $("label[for='prop_time'],label[for='prop_schedule'],label[for='prop_once_sum'],label[for='prop_hall'],label[for='prop_duration'],label[for='prop_trener'],label[for='prop_trains']").parent().hide();
@@ -961,11 +969,7 @@ function setDateInputValue(value, cur_group, el, type){
             }    
         }
     } else {
-        if (cur_group.type != "групповая") {
-            add_duration_date.setMinutes(add_duration_date.getMinutes() + group_duration);
-        } else {
-            add_duration_date.setMonth(add_duration_date.getMonth() + 1);
-        }
+        add_duration_date.setMinutes(add_duration_date.getMinutes() + group_duration);
     }
     
     var input = $("input[name='ends']");
