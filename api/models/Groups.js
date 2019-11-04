@@ -42,6 +42,14 @@ module.exports = {
       collection: "Persons",
       via: "groups"
     },
+    archived: {
+      collection: "Persons",
+      via: "archived_in_groups"
+    },
+    in_archive: {
+      type: "boolean",
+      defaultsTo: false
+    },
     toView: {
       type: "string",
       unique: true,

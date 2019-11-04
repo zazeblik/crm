@@ -49,7 +49,10 @@ var words = {
     "rank_minsport": "Разряд Мин.Спорта",
     "rank_ends": "Действие разряда",
     "rank_book_exists": "Разрядная книжка",
-    "age": "Лет"
+    "age": "Лет",
+    "in_archive": "В архиве",
+    "archived": "В архиве группы",
+    "archived_in_groups": "В архиве в"
 }
 
 function toRU(word) {

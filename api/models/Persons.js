@@ -64,6 +64,10 @@ module.exports = {
       collection: "Groups",
       via: "members"
     },
+    archived_in_groups: {
+      collection: "Groups",
+      via: "archived"
+    },
     trains: {
       collection: "Trains",
       via: "members"

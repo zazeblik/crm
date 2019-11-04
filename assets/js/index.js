@@ -1227,13 +1227,15 @@ function showJournals() {
     $("#journals_block").show();
     $.ajax({
         url: "/groups",
+        data: {
+            where: '{"in_archive":{"!=":true}}'
+        },
         success: function (groups) {
             for (var i = 0; i < groups.length; i++) {
                 if (groups[i].type != "сбор денег"){
                     var trener = ""
                     if (groups[i].trener && groups[i].trener.toView) trener = groups[i].trener.toView
-                    var members_length = 0
-                    if (groups[i].members && groups[i].members.length) members_length = groups[i].members.length
+                    var members_length = groups[i].members.length - groups[i].archived.length;
                     $("#journals_groups").append(
                         '<div class="col-md-3 pointed" data-label="' + groups[i].label + '" data-id="' + groups[i].id + '" id="journal_' + groups[i].id + '">\
                         <div class="card mb-3 box-shadow">\
@@ -1475,10 +1477,12 @@ function updateShowTrain(train_id, group_id, trener_id, train_name) {
     $.ajax({
         url: "/groups/" + group_id,
         data: {
-            populate: "members"
+            populate: "members,archived"
         },
         success: function (group) {
             var in_group = [];
+            let in_archive = group.archived.map(ia => ia.id);
+            group.members = group.members.filter(m => !in_archive.includes(m.id))
             group.members = group.members.sort(compareByName); 
             for (var i = 0; i < group.members.length; i++) {
                 in_group.push(group.members[i].id)

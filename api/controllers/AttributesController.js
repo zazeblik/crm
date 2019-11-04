@@ -96,7 +96,11 @@ module.exports = {
     names: function (req, res){
         if (req.param('model')){
             var model = eval(ucFirst(req.param('model')))
-            model.find({},function(err,data){
+            let find_obj = {}
+            if (req.param('model') == 'groups' && !req.param("show_archived")){
+                find_obj.in_archive = {"!=": true};
+            }
+            model.find(find_obj,function(err,data){
                 if (err) return res.status(400).send(err);
                 else {
                     return res.send(data);
@@ -461,8 +465,10 @@ module.exports = {
 
             if (!group_id || !start || !end) return res.status(400).send("group_id, start and end is required")
             let trains = await Trains.find({ group: group_id, datetime: { ">=": start, "<": end } }).sort("datetime ASC").populate("members")
-            let group = await Groups.findOne(group_id).populate("members")
-            let group_members = group.members;
+            let group = await Groups.findOne(group_id).populate("members").populate("archived")
+            let in_archive = group.archived.map(ia => ia.id);
+            let group_members = group.members.filter(m => !in_archive.includes(m.id));
+
             let pays = await Payments.find({ where: { group: group_id, or: [{ starts: { "<": end } }, { ends: { ">=": start } }] } }).sort("type DESC")
             let pays_min_starts = pays.length ? Math.min(...pays.map(p => p.starts)) : start;
             let pays_max_ends = pays.length ? Math.max(...pays.map(p => p.ends)) : end;
