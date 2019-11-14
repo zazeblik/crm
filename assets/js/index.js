@@ -23,10 +23,10 @@ function showModelTable(model, query) {
         success: function (attributes) {
             var fields = [];
             var model_fields = [];
-            
             for (var prop in attributes) {
                 let isPersonBirthdayField = prop == "birthday" && model == "persons";
-                if (prop != "id" && prop != "createdAt" && prop != "updatedAt" && prop != "toView" && !attributes[prop].collection) {
+                if (prop != "id" && prop != "createdAt" && prop != "toView" && !attributes[prop].collection) {
+                    if (prop == "updatedAt" && model != 'payments') continue;
                     var th_label = toRU(prop);
                     if (prop == "trener") th_label = window.settings_words.trener;
                     if (prop == "trains") th_label = window.settings_words.trains;
