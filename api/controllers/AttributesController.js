@@ -295,8 +295,8 @@ module.exports = {
                         visit: train_memebers_ids.includes(train_group_member.id),
                         name: train_group_member.toView,
                         payment: current_train_payment != null,
-                        payment_sum: current_train_payment.sum,
-                        payment_id: current_train_payment.id
+                        payment_sum: current_train_payment ? current_train_payment.sum : 0,
+                        payment_id: current_train_payment ? current_train_payment.id : null
                     })
                 });
                 result.push({
