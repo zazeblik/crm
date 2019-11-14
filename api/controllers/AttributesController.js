@@ -238,7 +238,7 @@ module.exports = {
             }            
         })
     },
-    presonal_report: async function(req, res){
+    personal_report: async function(req, res){
         let start = req.param("start")
         let end = req.param("end")
         let trener = req.param("trener")
@@ -290,11 +290,13 @@ module.exports = {
                         return ipt.group == train.group && ipt_members.includes(train_group_member.id)
                     })
                     const payed_train_ids = trains.filter(t => t.payed).map(t => t.id);
+                    let current_train_payment = getPayment(train, train_group_member, person_pays, person_in_pays_trains, payed_train_ids )
                     train_visits.push({
                         visit: train_memebers_ids.includes(train_group_member.id),
                         name: train_group_member.toView,
-                        payment: getPaymentSumOrStatus(train, train_group_member, person_pays, person_in_pays_trains, false, payed_train_ids ),
-                        payment_sum: getPaymentSumOrStatus(train, train_group_member, person_pays, person_in_pays_trains, true, payed_train_ids )
+                        payment: current_train_payment != null,
+                        payment_sum: current_train_payment.sum,
+                        payment_id: current_train_payment.id
                     })
                 });
                 result.push({
@@ -491,7 +493,7 @@ module.exports = {
                     const payed_train_ids = trains.filter(t => t.payed).map(t => t.id);
                     result[person_name][train_start] = {
                         visit: is_visit,
-                        payment: getPaymentSumOrStatus( train, person, person_pays, in_pays_trains, false, payed_train_ids)
+                        payment: getPayment( train, person, person_pays, in_pays_trains, payed_train_ids) != null
                     };
                 }
                 result[person_name]["Всего"] = total_visits
@@ -696,8 +698,8 @@ function clone(obj) {
     return copy;
 }
 
-function getPaymentSumOrStatus( current_train, person, pays, trains, isSum, payed_train_ids ){
-    if (!pays.length) return isSum ? 0 : false;
+function getPayment( current_train, person, pays, trains, payed_train_ids ){
+    if (!pays.length) return null;
     let train_start = current_train.datetime;
     let train_end = current_train.datetime_end;
     let abon_trains = []
@@ -709,7 +711,7 @@ function getPaymentSumOrStatus( current_train, person, pays, trains, isSum, paye
         if (!train_in_pay) continue;
         if (pay.type != "абонемент" || !pay.count) {
             current_train.payed = true;
-            return isSum ? pay.sum : true;
+            return pay;
         }
         abon_pays.push(pay);
         
@@ -729,7 +731,7 @@ function getPaymentSumOrStatus( current_train, person, pays, trains, isSum, paye
         const max_index = abon_pay.count - 1;
 
         const trainIndexLessThanPaysCount = abon_trains.indexOf(current_train.id) >= 0 && max_index >= abon_trains.indexOf(current_train.id);
-        return isSum ? (trainIndexLessThanPaysCount ? abon_pay.sum : 0) : trainIndexLessThanPaysCount;
+        return trainIndexLessThanPaysCount ? abon_pay : null;
     }
-    return isSum ? 0 : false;
+    return null;
 }

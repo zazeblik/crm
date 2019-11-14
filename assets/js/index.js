@@ -2023,12 +2023,18 @@ function getPersonalCalendarEvents(start, end, timezone, callback) {
         $("#personal_report_stats_total_sum").text("0")
         return callback([]);
     }
+    let current_start_date = start.date();
+    let start_date = start;
+    if (current_start_date != 1){
+        start_date = start.add(1, 'months').startOf('month').valueOf();
+    }
+    let end_date = moment(start_date).endOf('month').valueOf();
     $.ajax({
-        url: "/attributes/presonal_report",
+        url: "/attributes/personal_report",
         data: {
             trener: $("#personal_report_trener_select").val(),
-            start: start.valueOf(),
-            end: end.valueOf()
+            start: start_date,
+            end: end_date
         },
         success: function (trains) {
             var events = [];
@@ -2036,13 +2042,13 @@ function getPersonalCalendarEvents(start, end, timezone, callback) {
             let visits_count = 0;
             let payments_count = 0;
             let payments_sum = 0;
-            const reducer = (accumulator, currentValue) => accumulator + currentValue;
+            let payments = {};
             for (var i = 0; i < trains.length; i++) {
-                visits_count += trains[i].visits.filter(v => v.visit).length; 
+                visits_count += trains[i].visits.filter(v => v.visit).length;
                 let visits_payments = trains[i].visits.filter(v => v.payment);
-                payments_count += visits_payments.length; 
-                payments_sums = visits_payments.map(vp => vp.payment_sum)
-                payments_sum += payments_sums.length ? payments_sums.reduce(reducer) : 0;
+                visits_payments.forEach(vp => {
+                    payments[vp.payment_id] = vp.payment_sum;
+                })
                 let title = trains[i].visits.map(v => v.name.split(" ")[0]).join(' ')
                 let time = new Date(trains[i].datetime).getHours()
                 time += ":"+addZeros(new Date(trains[i].datetime).getMinutes())
@@ -2058,6 +2064,10 @@ function getPersonalCalendarEvents(start, end, timezone, callback) {
                     visits: trains[i].visits
                 }
                 events.push(obj)
+            }
+            for (const key in payments) {
+                payments_count++;
+                payments_sum +=payments[key];
             }
             $("#personal_report_stats_total_visits").text(visits_count)
             $("#personal_report_stats_total_pays").text(payments_count)
