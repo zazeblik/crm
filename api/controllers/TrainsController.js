@@ -21,7 +21,16 @@ module.exports = {
         }
     },
     generate_trains: async function(req, res){
-        await sails.helpers.trainsGenerate();
+        await sails.helpers.trainsGenerate(Date.now());
+        return res.ok();        
+    },
+    generate_next_month_trains: async function(req, res){
+        var d = new Date();
+        d.setMonth(d.getMonth() + 1);
+        d.setDate(1);
+        d.setHours(0, 0, 0);
+        d.setMilliseconds(0);
+        await sails.helpers.trainsGenerate(d.getTime());
         return res.ok();        
     }
 };

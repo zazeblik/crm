@@ -1,6 +1,12 @@
 module.exports = {
-  fn: async function() {
-    let date = new Date();
+  inputs: {
+    time: {
+      type: 'number',
+      required: true
+    }
+  },
+  fn: async function(params) {
+    let date = new Date(params.time);
     let groups = await Groups.find({ schedule: { "!=": "" } });
     let current_date = date.getDate();
     let months_days = daysInMonth(date.getMonth(), date.getFullYear());
@@ -37,7 +43,9 @@ module.exports = {
           train.datetime_end = start_date.getTime();
           try {
             await Trains.create(train);
-          } catch (error) {}
+          } catch (error) {
+            if (error.code == 'E_INVALID_NEW_RECORD') console.log(error)
+          }
         }
       }
     }

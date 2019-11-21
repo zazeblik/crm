@@ -2818,7 +2818,19 @@ function generateMonthTrains(){
         url: "/trains/generate_trains",
         async: false,
         success: function(){
-            alert("Тренировки на оставшися месяц успешно созданы")
+            alert("Тренировки на оставшийся месяц успешно созданы")
+        },
+        error: function (err) { handleError(err) }
+    })
+    showPlans();
+}
+
+function generateNextMonthTrains(){
+    $.ajax({
+        url: "/trains/generate_next_month_trains",
+        async: false,
+        success: function(){
+            alert("Тренировки на следующий месяц успешно созданы")
         },
         error: function (err) { handleError(err) }
     })
@@ -2942,6 +2954,7 @@ function createHandlers() {
     $("#stats_treners_menu_item").on("click", showStatsTreners)
     $("#stats_payments_menu_item").on("click", showStatsPayments) 
     $("#trains_generate_menu_item").on("click", generateMonthTrains) 
+    $("#next_month_trains_generate_menu_item").on("click", generateNextMonthTrains) 
     $("#save_train_member_btn").on("click", saveTrainJournalAddMember)
     $("#save_group_member_btn").on("click", saveGroupJournalAddMember)
     $("#save_member_to_train_btn").on("click", saveMemberToTrain)
