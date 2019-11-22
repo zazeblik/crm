@@ -493,10 +493,26 @@ module.exports = {
                     const payed_train_ids = trains.filter(t => t.payed).map(t => t.id);
                     result[person_name][train_start] = {
                         visit: is_visit,
-                        payment: getPayment( train, person, person_pays, in_pays_trains, payed_train_ids) != null
+                        payment: getPayment( train, person, person_pays, in_pays_trains, payed_train_ids)
                     };
                 }
-                result[person_name]["Всего"] = total_visits
+                let payments_sum = 0;
+                let unique_payments_ids = [];
+                for (const train_start in result[person_name]) {
+                    let visit = result[person_name][train_start];
+                    if (visit.payment == null) {
+                        result[person_name][train_start].payment = false;
+                        continue;
+                    }
+
+                    if (!unique_payments_ids.includes(visit.payment.id)){
+                        unique_payments_ids = visit.payment.id;
+                        payments_sum += visit.payment.sum;
+                    }
+                    result[person_name][train_start].payment = true;
+                }
+                result[person_name]["Оплата"] = payments_sum
+                result[person_name]["Занятий"] = total_visits
             }
             let ordered = {}
             Object.keys(result).sort().forEach(function(key) {

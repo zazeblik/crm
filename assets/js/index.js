@@ -2005,7 +2005,7 @@ function setVisitsTableHeader(visits){
     $("#report_table_head").append("<th>Фамилия Имя</th>")
     for (let i = 0; i < uniqueTrainNames.length; i++) {
         let name = uniqueTrainNames[i];
-        let date_to_set = name == "Всего" ? name : addZeros(new Date(Number(name)).getDate())
+        let date_to_set = name == "Занятий" || name == "Оплата" ? name : addZeros(new Date(Number(name)).getDate())
         $("#report_table_head").append(`<th>${date_to_set}</th>`)
     }
     return uniqueTrainNames
@@ -2133,7 +2133,7 @@ function renderReport() {
                 row += `<th class="text-left">${count}. ${person}</th>`
                 for (let i = 0; i < train_names.length; i++) {
                     const train_name = train_names[i];
-                    if (train_name == "Всего"){
+                    if (train_name == "Занятий" || train_name == "Оплата"){
                         row += `<td>${data[person][train_name]}</td>`
                     } else {
                         let isVisit = data[person][train_name].visit; 
