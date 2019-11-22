@@ -2289,97 +2289,110 @@ function showDebts() {
 
 
 function exportReport() {
-    var group_id = $("#report_group_select").val()
-    if (group_id) {
-        var month = $("#report_months_select").val()
-        var year = $("#report_year_input").val()
-        var month_date = new Date(year, month);
-        var next_month_date = new Date(year, month)
-        next_month_date.setMonth(next_month_date.getMonth() + 1)
-        var export_arr = [];
-        $.ajax({
-            url: "/trains",
-            data: {
-                sort: "datetime ASC",
-                select: "datetime,datetime_end",
-                populate: "members",
-                where: JSON.stringify({ group: group_id, datetime: { ">=": month_date.getTime(), "<": next_month_date.getTime() } })
-            },
-            success: function (trains) {
-                $.ajax({
-                    url: "/groups/" + group_id,
-                    data: {
-                        select: "toView,duration",
-                        populate: "members"
-                    },
-                    success: function (group) {
-                        var in_group_ids = [];
-                        for (var k = 0; k < group.members.length; k++) {
-                            in_group_ids.push(group.members[k].id)
-                        }
-                        $.ajax({
-                            url: "/persons",
-                            data: {
-                                sort: "name ASC",
-                                where: JSON.stringify({ id: { in: in_group_ids } })
-                            },
-                            success: function (persons) {
-                                for (var i = 0; i < persons.length; i++) {
-                                    var export_obj = { "Фамилия Имя": persons[i].name }
-                                    var sum = 0;
-                                    date = 0;
-                                    for (var j = 0; j < trains.length; j++) {
-                                        date = new Date(trains[j].datetime);
-                                        var date_text = addZeros(date.getDate()) + "." + addZeros(date.getMonth()) + " " + date.getHours() + ":" + addZeros(date.getMinutes());
-                                        var finded = false
-                                        if (trains[j].members.length) {
-                                            for (var n = 0; n < trains[j].members.length; n++) {
-                                                if (trains[j].members[n].id == persons[i].id) {
-                                                    finded = true
-                                                    sum++
-                                                }
-                                                if (finded) {
-                                                    export_obj[date_text] = "+";
-                                                } else {
-                                                    export_obj[date_text] = "н";
-                                                }
-                                            }
-                                        } else {
-                                            export_obj[date_text] = "н"
-                                        }
-                                    }
-                                    export_obj["Всего"] = sum;
-                                    export_arr.push(export_obj)
-                                }
-                                var wb = XLSX.utils.book_new();
-                                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(export_arr), "data");
-                                var wopts = { bookType: 'xlsx', type: 'array' };
-                                var wbout = XLSX.write(wb, wopts);
-                                var fileName = "Отчёт_" + addZeros((Number(month) + 1)) + "." + year;
-                                var link = document.createElement("a");
-                                var blob = new Blob([wbout], { type: "application/octet-stream" });
-                                link.href = window.URL.createObjectURL(blob);
-                                link.style = "visibility:hidden";
-                                link.download = fileName + ".xlsx";
-                                document.body.appendChild(link);
-                                link.click();
-                                document.body.removeChild(link);
-                            },
-                            error: function (err) {
-                                handleError(err)
-                            }
-                        })
-                    },
-                    error: function (err) {
-                        handleError(err)
-                    }
-                })
-            },
-            error: function (err) {
-                handleError(err)
-            }
-        })
-    }
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.table_to_sheet(document.getElementById("report_table"), {raw: true }));
+    var wopts = { bookType: 'xlsx', type: 'array' };
+    var wbout = XLSX.write(wb, wopts);
+    var fileName = "Отчёт";
+    var link = document.createElement("a");
+    var blob = new Blob([wbout], { type: "application/octet-stream" });
+    link.href = window.URL.createObjectURL(blob);
+    link.style = "visibility:hidden";
+    link.download = fileName + ".xlsx";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link); 
+    // var group_id = $("#report_group_select").val()
+    // if (group_id) {
+    //     var month = $("#report_months_select").val()
+    //     var year = $("#report_year_input").val()
+    //     var month_date = new Date(year, month);
+    //     var next_month_date = new Date(year, month)
+    //     next_month_date.setMonth(next_month_date.getMonth() + 1)
+    //     var export_arr = [];
+    //     $.ajax({
+    //         url: "/trains",
+    //         data: {
+    //             sort: "datetime ASC",
+    //             select: "datetime,datetime_end",
+    //             populate: "members",
+    //             where: JSON.stringify({ group: group_id, datetime: { ">=": month_date.getTime(), "<": next_month_date.getTime() } })
+    //         },
+    //         success: function (trains) {
+    //             $.ajax({
+    //                 url: "/groups/" + group_id,
+    //                 data: {
+    //                     select: "toView,duration",
+    //                     populate: "members"
+    //                 },
+    //                 success: function (group) {
+    //                     var in_group_ids = [];
+    //                     for (var k = 0; k < group.members.length; k++) {
+    //                         in_group_ids.push(group.members[k].id)
+    //                     }
+    //                     $.ajax({
+    //                         url: "/persons",
+    //                         data: {
+    //                             sort: "name ASC",
+    //                             where: JSON.stringify({ id: { in: in_group_ids } })
+    //                         },
+    //                         success: function (persons) {
+    //                             for (var i = 0; i < persons.length; i++) {
+    //                                 var export_obj = { "Фамилия Имя": persons[i].name }
+    //                                 var sum = 0;
+    //                                 date = 0;
+    //                                 for (var j = 0; j < trains.length; j++) {
+    //                                     date = new Date(trains[j].datetime);
+    //                                     var date_text = addZeros(date.getDate()) + "." + addZeros(date.getMonth()) + " " + date.getHours() + ":" + addZeros(date.getMinutes());
+    //                                     var finded = false
+    //                                     if (trains[j].members.length) {
+    //                                         for (var n = 0; n < trains[j].members.length; n++) {
+    //                                             if (trains[j].members[n].id == persons[i].id) {
+    //                                                 finded = true
+    //                                                 sum++
+    //                                             }
+    //                                             if (finded) {
+    //                                                 export_obj[date_text] = "+";
+    //                                             } else {
+    //                                                 export_obj[date_text] = "н";
+    //                                             }
+    //                                         }
+    //                                     } else {
+    //                                         export_obj[date_text] = "н"
+    //                                     }
+    //                                 }
+    //                                 export_obj["Всего"] = sum;
+    //                                 export_arr.push(export_obj)
+    //                             }
+    //                             var wb = XLSX.utils.book_new();
+    //                             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(export_arr), "data");
+    //                             var wopts = { bookType: 'xlsx', type: 'array' };
+    //                             var wbout = XLSX.write(wb, wopts);
+    //                             var fileName = "Отчёт_" + addZeros((Number(month) + 1)) + "." + year;
+    //                             var link = document.createElement("a");
+    //                             var blob = new Blob([wbout], { type: "application/octet-stream" });
+    //                             link.href = window.URL.createObjectURL(blob);
+    //                             link.style = "visibility:hidden";
+    //                             link.download = fileName + ".xlsx";
+    //                             document.body.appendChild(link);
+    //                             link.click();
+    //                             document.body.removeChild(link);
+    //                         },
+    //                         error: function (err) {
+    //                             handleError(err)
+    //                         }
+    //                     })
+    //                 },
+    //                 error: function (err) {
+    //                     handleError(err)
+    //                 }
+    //             })
+    //         },
+    //         error: function (err) {
+    //             handleError(err)
+    //         }
+    //     })
+    // }
 }
 
 function exportDebts() {
