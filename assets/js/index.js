@@ -2017,6 +2017,7 @@ function getTime(datetime){
     return addZeros(new Date(datetime).getHours())+":"+addZeros(new Date(datetime).getMinutes())
 }
 
+let to_export_personal_trains = [];
 function getPersonalCalendarEvents(start, end, timezone, callback) {
     if (!$("#personal_report_trener_select").val()) {
         $("#personal_report_stats_total_trains").text("0")
@@ -2039,6 +2040,7 @@ function getPersonalCalendarEvents(start, end, timezone, callback) {
             end: end_date
         },
         success: function (trains) {
+            to_export_personal_trains = trains;
             var events = [];
             $("#personal_report_stats_total_trains").text(trains.length);
             let visits_count = 0;
@@ -2150,6 +2152,7 @@ function renderReport() {
                 row += "</tr>"
                 $("#report_table_body").append(row);
             }
+            $("#report_table_body").append(`<tr class="d-none"><td>Сумма платежей: ${$("#stats_total_sum").text()}</td></tr>`);
         },
         error: function (err) {
             handleError(err)
@@ -2330,7 +2333,22 @@ function exportDebts() {
 
 function exportPersonalReport(){
     var wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.table_to_sheet($("#personal_report_calendar table:first")[0]));
+    let aoa = [["Индивидуальные "+$("#personal_report_trener_select option:selected").text()+", "+$("#personal_report_calendar h4").text()]];
+    aoa.push(["Дата и время", "Участники"])
+    for(var i = 0; i < to_export_personal_trains.length; i++){
+        let to_export_train = to_export_personal_trains[i];
+        let train_members = "";
+        for (let j = 0; j < to_export_train.visits.length; j++) {
+            const visit = to_export_train.visits[j];
+            if (!visit.visit) continue;
+            train_members += visit.name.split(" ")[0]+ "; ";
+        }
+        if (!train_members) continue;
+        aoa.push([moment(to_export_train.datetime).format("DD.MM HH:mm") + "-"+moment(to_export_train.datetime_end).format("HH:mm"), train_members]);
+    }
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa));
+    let worksheet = wb.Sheets[wb.SheetNames[0]];
+    worksheet['!cols'] = [{wch:20}, {wch:100}];
     var wopts = { bookType: 'xlsx', type: 'array' };
     var wbout = XLSX.write(wb, wopts);
     var fileName = "Индивидуальные";
