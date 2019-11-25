@@ -1992,7 +1992,7 @@ function showStatsPayments() {
     renderStatsPayments()
 }
 
-function setVisitsTableHeader(visits){
+function setVisitsTableHeader(visits, table_name){
     let uniqueTrainNames = [];
     for (const name in visits) {
         let person_trains = visits[name]
@@ -2002,11 +2002,13 @@ function setVisitsTableHeader(visits){
             }
         }
     }
+    $("#report_table_name").append("<th>"+table_name+"</th>")
     $("#report_table_head").append("<th>Фамилия Имя</th>")
     for (let i = 0; i < uniqueTrainNames.length; i++) {
         let name = uniqueTrainNames[i];
         let date_to_set = name == "Занятий" || name == "Оплата" ? name : addZeros(new Date(Number(name)).getDate())
         $("#report_table_head").append(`<th>${date_to_set}</th>`)
+        $("#report_table_name").append("<th></th>")
     }
     return uniqueTrainNames
 }
@@ -2114,6 +2116,7 @@ function renderReport() {
             handleError(err)
         }
     })
+    $("#report_table_name").empty();
     $("#report_table_head").empty();
     $("#report_table_body").empty();
 
@@ -2125,7 +2128,9 @@ function renderReport() {
             end: next_month_date.getTime()
         },
         success: function (data) {
-            let train_names = setVisitsTableHeader(data)
+            let table_name = `${$("#report_group_select option:selected").text()}, ${$("#report_months_select option:selected").text()}
+            ${$("#report_year_input").val()}`;
+            let train_names = setVisitsTableHeader(data, table_name)
             let count = 0;
             for (var person in data) {
                 count++
@@ -2287,13 +2292,16 @@ function showDebts() {
     renderDebts();
 }
 
-
 function exportReport() {
     var wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.table_to_sheet(document.getElementById("report_table"), {raw: true }));
     var wopts = { bookType: 'xlsx', type: 'array' };
+    let worksheet = wb.Sheets[wb.SheetNames[0]];
+    deleteRow(worksheet, 2);
+    worksheet['!cols'] = [{wch:50}];
     var wbout = XLSX.write(wb, wopts);
     var fileName = "Отчёт";
+
     var link = document.createElement("a");
     var blob = new Blob([wbout], { type: "application/octet-stream" });
     link.href = window.URL.createObjectURL(blob);
@@ -2301,98 +2309,7 @@ function exportReport() {
     link.download = fileName + ".xlsx";
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link); 
-    // var group_id = $("#report_group_select").val()
-    // if (group_id) {
-    //     var month = $("#report_months_select").val()
-    //     var year = $("#report_year_input").val()
-    //     var month_date = new Date(year, month);
-    //     var next_month_date = new Date(year, month)
-    //     next_month_date.setMonth(next_month_date.getMonth() + 1)
-    //     var export_arr = [];
-    //     $.ajax({
-    //         url: "/trains",
-    //         data: {
-    //             sort: "datetime ASC",
-    //             select: "datetime,datetime_end",
-    //             populate: "members",
-    //             where: JSON.stringify({ group: group_id, datetime: { ">=": month_date.getTime(), "<": next_month_date.getTime() } })
-    //         },
-    //         success: function (trains) {
-    //             $.ajax({
-    //                 url: "/groups/" + group_id,
-    //                 data: {
-    //                     select: "toView,duration",
-    //                     populate: "members"
-    //                 },
-    //                 success: function (group) {
-    //                     var in_group_ids = [];
-    //                     for (var k = 0; k < group.members.length; k++) {
-    //                         in_group_ids.push(group.members[k].id)
-    //                     }
-    //                     $.ajax({
-    //                         url: "/persons",
-    //                         data: {
-    //                             sort: "name ASC",
-    //                             where: JSON.stringify({ id: { in: in_group_ids } })
-    //                         },
-    //                         success: function (persons) {
-    //                             for (var i = 0; i < persons.length; i++) {
-    //                                 var export_obj = { "Фамилия Имя": persons[i].name }
-    //                                 var sum = 0;
-    //                                 date = 0;
-    //                                 for (var j = 0; j < trains.length; j++) {
-    //                                     date = new Date(trains[j].datetime);
-    //                                     var date_text = addZeros(date.getDate()) + "." + addZeros(date.getMonth()) + " " + date.getHours() + ":" + addZeros(date.getMinutes());
-    //                                     var finded = false
-    //                                     if (trains[j].members.length) {
-    //                                         for (var n = 0; n < trains[j].members.length; n++) {
-    //                                             if (trains[j].members[n].id == persons[i].id) {
-    //                                                 finded = true
-    //                                                 sum++
-    //                                             }
-    //                                             if (finded) {
-    //                                                 export_obj[date_text] = "+";
-    //                                             } else {
-    //                                                 export_obj[date_text] = "н";
-    //                                             }
-    //                                         }
-    //                                     } else {
-    //                                         export_obj[date_text] = "н"
-    //                                     }
-    //                                 }
-    //                                 export_obj["Всего"] = sum;
-    //                                 export_arr.push(export_obj)
-    //                             }
-    //                             var wb = XLSX.utils.book_new();
-    //                             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(export_arr), "data");
-    //                             var wopts = { bookType: 'xlsx', type: 'array' };
-    //                             var wbout = XLSX.write(wb, wopts);
-    //                             var fileName = "Отчёт_" + addZeros((Number(month) + 1)) + "." + year;
-    //                             var link = document.createElement("a");
-    //                             var blob = new Blob([wbout], { type: "application/octet-stream" });
-    //                             link.href = window.URL.createObjectURL(blob);
-    //                             link.style = "visibility:hidden";
-    //                             link.download = fileName + ".xlsx";
-    //                             document.body.appendChild(link);
-    //                             link.click();
-    //                             document.body.removeChild(link);
-    //                         },
-    //                         error: function (err) {
-    //                             handleError(err)
-    //                         }
-    //                     })
-    //                 },
-    //                 error: function (err) {
-    //                     handleError(err)
-    //                 }
-    //             })
-    //         },
-    //         error: function (err) {
-    //             handleError(err)
-    //         }
-    //     })
-    // }
+    document.body.removeChild(link);
 }
 
 function exportDebts() {
