@@ -2042,12 +2042,16 @@ function getPersonalCalendarEvents(start, end, timezone, callback) {
         success: function (trains) {
             to_export_personal_trains = trains;
             var events = [];
-            $("#personal_report_stats_total_trains").text(trains.length);
             let visits_count = 0;
             let payments_count = 0;
+            let total_duration = moment.duration();
             let payments_sum = 0;
             let payments = {};
             for (var i = 0; i < trains.length; i++) {
+                let start_moment = moment(trains[i].datetime);
+                let end_moment = moment(trains[i].datetime_end);
+                let train_duration = moment.duration(end_moment.diff(start_moment));
+                total_duration = total_duration.add(train_duration);
                 visits_count += trains[i].visits.filter(v => v.visit).length;
                 let visits_payments = trains[i].visits.filter(v => v.payment);
                 visits_payments.forEach(vp => {
@@ -2073,6 +2077,7 @@ function getPersonalCalendarEvents(start, end, timezone, callback) {
                 payments_count++;
                 payments_sum +=payments[key];
             }
+            $("#personal_report_stats_total_trains").text(`${trains.length}(${roundPlus(total_duration.asHours(),1)}ч.)`);
             $("#personal_report_stats_total_visits").text(visits_count)
             $("#personal_report_stats_total_pays").text(payments_count)
             $("#personal_report_stats_total_sum").text(payments_sum)
@@ -2083,6 +2088,13 @@ function getPersonalCalendarEvents(start, end, timezone, callback) {
         }
     })
 }
+
+function roundPlus(x, n) { //x - число, n - количество знаков 
+    if(isNaN(x) || isNaN(n)) return false;
+    var m = Math.pow(10,n);
+    return Math.round(x*m)/m;
+  }
+  
 
 function renderPersonalReport(){
     $('#personal_report_calendar').fullCalendar('refetchEvents')
