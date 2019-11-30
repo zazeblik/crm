@@ -2626,11 +2626,14 @@ var personal_calendar_options = {
         let visits = event.visits;
         let visits_str = '';
         visits.forEach(visit => {
-            visits_str += `<div class="border-top" style="overflow-x: hidden;">
+            visits_str += `<div class="border-top" style="overflow-x: hidden; line-height: 1rem; ${visit.payment_type == "абонемент" || visit.available ? "background-color: rgba(200, 252, 210, 1);" : ""}">
             <small>${visit.name.split(" ")[0]}</small>
             <small class="d-none d-lg-inline"> ${visit.name.split(" ")[1]}</small><br class="d-none d-lg-inline"/>
             ${visit.visit ? '<i class="fa fa-check" title="Присутствовал"></i>' : '<i class="fa fa-close" title="Не присутствовал"></i>'}
-            <span class="badge badge-${visit.payment ? 'success' : 'danger'}">${visit.payment ? visit.payment_sum + 'р' : 'нет оплаты'}</span>
+            ${(visit.payment_type == "абонемент" && visit.payment_count && visit.payment_train_index != null)
+                ? '<span class="badge badge-secondary">'+visit.payment_train_index+'/'+visit.payment_count+'</span>' 
+                : '' }
+            <span class="badge badge-${visit.payment ? 'success' : 'danger'}">${visit.payment ? visit.payment_sum : 'нет<span class="d-none d-lg-inline"> оплаты<span>'}</span>
             </div>`
         });
         return $(`<div class="bg-light border border-secondary rounded m-1 text-center">

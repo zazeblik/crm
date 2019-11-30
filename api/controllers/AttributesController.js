@@ -277,7 +277,11 @@ module.exports = {
 
             let pays_min_starts = pays.length ? Math.min(...pays.map(p => p.starts)) : start;
             let pays_max_ends = pays.length ? Math.max(...pays.map(p => p.ends)) : end;
-            let in_pays_trains = await Trains.find({ group: trains_groups, datetime: { ">=": pays_min_starts, "<": pays_max_ends } }).sort("datetime ASC").populate("members")
+            let in_pays_trains = await Trains.find({ group: trains_groups, datetime: { ">=": pays_min_starts, "<": pays_max_ends } })
+                .sort("datetime ASC")
+                .populate("members")
+
+            let group_person_abon_pays = {};
             trains.forEach(train => {
                 let train_visits = []
                 let train_group = train.group;
@@ -285,28 +289,40 @@ module.exports = {
                 let train_group_members = payment_group_by_id[train_group].members;
                 train_group_members.forEach(train_group_member => {
                     let person_pays = pays.filter(p => p.payer == train_group_member.id && p.group == train.group);
+                    if (!group_person_abon_pays[train.group+"|"+train_group_member.id]){
+                        group_person_abon_pays[train.group+"|"+train_group_member.id] = person_pays.filter(p => p.type == "абонемент");    
+                    }
                     let person_in_pays_trains = in_pays_trains.filter(ipt => {
                         let ipt_members = ipt.members.map(iptm => iptm.id)
                         return ipt.group == train.group && ipt_members.includes(train_group_member.id)
                     })
                     const payed_train_ids = trains.filter(t => t.payed).map(t => t.id);
                     let current_train_payment = getPayment(train, train_group_member, person_pays, person_in_pays_trains, payed_train_ids )
-                    train_visits.push({
+                    let visit = {
                         visit: train_memebers_ids.includes(train_group_member.id),
                         name: train_group_member.toView,
                         payment: current_train_payment != null,
                         payment_sum: current_train_payment ? current_train_payment.sum : 0,
-                        payment_id: current_train_payment ? current_train_payment.id : null
-                    })
+                        payment_id: current_train_payment ? current_train_payment.id : null,
+                        payment_type: current_train_payment ? current_train_payment.type : null,
+                        payment_count: current_train_payment ? current_train_payment.count : null,
+                        payment_train_index: current_train_payment ? current_train_payment.train_index : null,
+                        payment_starts: current_train_payment ? current_train_payment.starts : null,
+                        payment_ends: current_train_payment ? current_train_payment.ends : null,
+                        person_id: train_group_member.id
+                    }
+                    train_visits.push(visit)
+
                 });
                 result.push({
                     id: train.id,
                     datetime: train.datetime,
                     datetime_end: train.datetime_end,
+                    group: train_group,
                     visits: train_visits
                 })
             });
-
+            result = markAvailableVisits(result, group_person_abon_pays)
             return res.send(result);
         } catch (error) {
             console.log(error)
@@ -742,12 +758,70 @@ function getPayment( current_train, person, pays, trains, payed_train_ids ){
             }
         });
     }
+    let trainIndexLessThanPaysCount = false;
+    let findedPay = null;
     for (let i = 0; i < abon_pays.length; i++) {
+        
         const abon_pay = abon_pays[i];
         const max_index = abon_pay.count - 1;
-
-        const trainIndexLessThanPaysCount = abon_trains.indexOf(current_train.id) >= 0 && max_index >= abon_trains.indexOf(current_train.id);
-        return trainIndexLessThanPaysCount ? abon_pay : null;
+        
+        if (abon_trains.indexOf(current_train.id) >= 0 && max_index >= abon_trains.indexOf(current_train.id)){
+            trainIndexLessThanPaysCount = true;
+            findedPay = Object.assign({}, abon_pay)
+            findedPay.train_index = abon_trains.indexOf(current_train.id) + 1;
+            break;
+        }
     }
-    return null;
+    return trainIndexLessThanPaysCount ? findedPay : null;
+}
+
+function markAvailableVisits(result, group_person_abon_pays){
+    
+    let group_person_visits = {};
+    for (let i = 0; i < result.length; i++) {
+        let train = result[i];
+        for (let j = 0; j < train.visits.length; j++) {
+            const visit = train.visits[j];
+            if (!group_person_visits[train.group+"|"+visit.person_id]) group_person_visits[train.group+"|"+visit.person_id] = [];
+            group_person_visits[train.group+"|"+visit.person_id].push(visit);
+        }
+    }
+    for (let i = 0; i < result.length; i++) {
+        let train = result[i];
+        let visits = train.visits;
+        for (let j = 0; j < visits.length; j++){
+            let visit = visits[j];
+            if (visit.payment) continue;
+            if (!group_person_abon_pays[train.group+"|"+visit.person_id] || group_person_abon_pays[train.group+"|"+visit.person_id].length == 0) continue;
+            let abon_pays = group_person_abon_pays[train.group+"|"+visit.person_id]
+                .filter(p => p.starts <= train.datetime && p.ends >= train.datetime_end && p.count > 0);
+            let abon_pay_visits = group_person_visits[train.group+"|"+visit.person_id];
+
+            for (let n = 0; n < abon_pays.length; n++) {
+                const abon_pay = abon_pays[n];
+                const max_index = abon_pay.count;
+                let processed_index = 0;
+                for (let k = 0; k < abon_pay_visits.length; k++) {
+                    let abon_visit = abon_pay_visits[k];
+                    
+                    if (abon_visit.payment) {
+                        if (abon_visit.payment_type != "абонемент") continue;
+                        processed_index = abon_visit.payment_train_index;
+                    } else {
+                        if (abon_visit.available){
+                            processed_index++;   
+                        } else{
+                            processed_index++;
+                            if (processed_index <= max_index) {
+                                result[i].visits[j].available = true;
+                                abon_pay_visits[k].available = true;
+                            } 
+                        }                     
+                    }
+                }
+            }
+            
+        }
+    }
+    return result
 }
