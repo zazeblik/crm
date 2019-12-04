@@ -1667,7 +1667,9 @@ function renderStatsMembers() {
             handleError(err);
         }
     })
-    labels = cutLabels(labels)
+    labels = cutLabels(labels);
+    sortArraysByCounts(counts, labels, group_trains, personal_trains, camp_trains)
+
     ctx.height = labels.length * 15;
     membersChart = new Chart(ctx, {
         type: 'horizontalBar',
@@ -1802,6 +1804,7 @@ function renderStatsTreners() {
         }
     })
     labels = cutLabels(labels)
+    sortArraysByCounts(counts, labels, group_trains, personal_trains, camp_trains)
     ctx.height = labels.length * 25;
     trenersChart = new Chart(ctx, {
         type: 'horizontalBar',
@@ -1853,6 +1856,34 @@ function renderStatsTreners() {
             }
         }
     });
+}
+
+function sortArraysByCounts(counts, labels, groups, personals, camps){
+    for(let i=0; i < counts.length; i++){
+        for(let j= i+1; j < counts.length; j++){
+            if(counts[i] < counts[j]){
+                let swap_count = counts[i];
+                let swap_label = labels[i];
+                labels[i] = labels[j];
+                counts[i] = counts[j];
+                labels[j] = swap_label;
+                counts[j] = swap_count;
+
+                if (!groups) continue;
+                let swap_group = groups[i];
+                let swap_personal = personals[i];
+                let swap_camp = camps[i];
+                
+                groups[i] = groups[j];
+                personals[i] = personals[j];
+                camps[i] = camps[j];
+                
+                groups[j] = swap_group;
+                personals[j] = swap_personal;
+                camps[j] = swap_camp;
+            }
+        }
+    }
 }
 
 function showStatsTreners() {
@@ -1921,6 +1952,7 @@ function renderStatsPayments() {
         }
     })
     labels = cutLabels(labels)
+    sortArraysByCounts(counts, labels)
     ctx.height = labels.length * 15;
     paysChart = new Chart(ctx, {
         type: 'horizontalBar',
