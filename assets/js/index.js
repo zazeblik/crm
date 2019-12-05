@@ -191,7 +191,7 @@ function showTables() {
                 data.splice(data.splice(data.indexOf("users")), 1);
             }
             for (var i = 0; i < data.length; i++) {
-                if (!data[i].includes("_") && data[i] != "sumchanges") {
+                if (!data[i].includes("_")) {
                     var label = toRU(data[i])
                     if (data[i] == "trains") label = window.settings_words.trains
                     $("#tables_list").append('<a id="table_' + data[i] + '" class="dropdown-item" data-model="' + data[i] + '">' + label + '</a>')
@@ -2488,14 +2488,14 @@ function showPaysForm() {
     clearBlocks();
     $("#pays_block").show();
     $.ajax({
-        url: "/attributes/names?model=persons",
+        url: "/persons/names_with_groups",
         success: function (persons) {
             if (!persons.length)
                 return;
             var options = []
             persons = persons.sort(compareByToView);
             for (var i = 0; i < persons.length; i++) {
-                options.push({label: persons[i].toView, value: persons[i].id})   
+                options.push({label: persons[i].toView, value: persons[i].id, attributes: { groups: persons[i].groups.toString()}})   
             }
             $("#pays_payer").multiselect({ buttonWidth: '100%', maxHeight: 400, buttonClass: 'btn btn-sm btn-flat', enableFiltering: true, buttonText: selectButtonText })
             $("#pays_payer").multiselect('dataprovider', options);

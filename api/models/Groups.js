@@ -63,25 +63,10 @@ module.exports = {
     values.toView = values.label;
     next();
   },
-  afterCreate: function (values, next) {
-    Sumchanges.create({
-      group: values.id,
-      sum: values.sum,
-      once_sum: values.once_sum
-    }, function(){
-      next();
-    })
-  },
 
   beforeUpdate: function (values, next) {
-    Sumchanges.create({
-      group: values.id,
-      sum: values.sum,
-      once_sum: values.once_sum
-    }, function(){
-      if (values.label) values.toView = values.label;
-      next();
-    })    
+    if (values.label) values.toView = values.label;
+    next();    
   },
   afterUpdate: function (values, next) {
     if (values.label) values.toView = values.label;
@@ -91,9 +76,7 @@ module.exports = {
     if (values.id || values.where.id) {
       var id = values.id || values.where.id;
       Trains.destroy({group: id}, function(){
-        Sumchanges.destroy({group: id}, function(){
-          next();
-        })        
+        next();       
       })  
     } else {
       next();

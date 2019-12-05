@@ -3,6 +3,18 @@ var fs = require("fs");
 var moment = require('moment')
 const dates = ["birthday"]
 module.exports = {
+    names_with_groups: async function (req, res){
+        let persons = await Persons.find().populate("groups");
+        let results = [];
+        persons.forEach(person => {
+            results.push({
+                id: person.id,
+                toView: person.toView,
+                groups: person.groups.map(g => g.id)
+            })
+        })
+        return res.send(results);
+    },
     import: function (req, res) {
         if (req.method == "POST" && req.file('file0')) {
             req.file('file0').upload({
