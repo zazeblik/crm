@@ -296,6 +296,14 @@ function addModel(from_model, from_values) {
                                             <div class="input-group-text"><i class="fa fa-calendar"></i></div>\
                                         </div>\
                                     </div>'
+                                } else if (prop == "sum" && model == "payments"){
+                                    modal_body +=
+                                        '<div class="input-group input-group-sm">\
+                                        <input id="prop_' + prop + '" type="number" name="' + prop + '" required="' + data[prop].required + '" value="' + valueToInsert + '" class="form-control form-control-sm">\
+                                        <div class="input-group-append">\
+                                            <button class="btn btn-outline-secondary" type="button" onclick="correctPaymentSumDiscount(this)">-10%</button>\
+                                        </div>\
+                                    </div>'
                                 } else {
                                     modal_body += '<input id="prop_' + prop + '" type="number" name="' + prop + '" required="' + data[prop].required + '" value="' + valueToInsert + '" class="form-control form-control-sm">'
                                 }
@@ -465,6 +473,13 @@ function addModel(from_model, from_values) {
             handleError(err)
         }
     })
+}
+
+function correctPaymentSumDiscount(elem){
+    let sum_input = $(elem).parent().prev();
+    if (sum_input.val()){
+        sum_input.val(Math.round(sum_input.val()*0.9));
+    }
 }
 
 function correctForm(model, from_values){
